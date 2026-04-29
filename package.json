@@ -1,0 +1,52 @@
+{
+    "name": "@inputbuffer/feedback",
+    "version": "0.1.0",
+    "description": "Collect feedback from any website with a single script tag.",
+    "main": "dist/widget.js",
+    "types": "dist/index.d.ts",
+    "exports": {
+        ".": {
+            "types": "./dist/index.d.ts",
+            "default": "./dist/widget.js"
+        },
+        "./modal": {
+            "types": "./dist/modal-entry.d.ts",
+            "default": "./dist/modal.js"
+        },
+        "./bar": {
+            "types": "./dist/bar-entry.d.ts",
+            "default": "./dist/bar.js"
+        }
+    },
+    "files": [
+        "dist/",
+        "!dist/*.map"
+    ],
+    "scripts": {
+        "build": "node scripts/build.mjs",
+        "build:prod": "NODE_ENV=production node scripts/build.mjs",
+        "typecheck": "tsc --noEmit",
+        "test": "vitest run",
+        "test:watch": "vitest",
+        "prepublishOnly": "npm run typecheck && npm run build:prod && npm test"
+    },
+    "devDependencies": {
+        "@vitest/coverage-v8": "^4.1.4",
+        "esbuild": "0.25.0",
+        "jsdom": "^29.0.2",
+        "typescript": "^5.8.2",
+        "vitest": "^4.1.4"
+    },
+    "keywords": [
+        "feedback",
+        "widget",
+        "embed",
+        "inputbuffer"
+    ],
+    "license": "MIT",
+    "repository": {
+        "type": "git",
+        "url": "https://github.com/inputbuffer/feedback"
+    },
+    "homepage": "https://inputbuffer.io"
+}

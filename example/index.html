@@ -1,0 +1,1255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>InputBuffer Playground</title>
+    <link rel="stylesheet" id="hljs-theme" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 0 24px 80px;
+            color: #111827;
+        }
+        h1 { font-size: 24px; margin-bottom: 6px; }
+        .subtitle { color: #6b7280; margin-bottom: 36px; }
+
+        #theme-controls {
+            position: fixed;
+            top: 16px;
+            right: 16px;
+            display: flex;
+            gap: 4px;
+            z-index: 10000;
+        }
+        #theme-controls button {
+            background: #374151;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 6px 12px;
+            font-size: 12px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        #theme-controls button.active { background: #6366f1; }
+
+        /* ── Top-level mode tabs ── */
+        .mode-strip {
+            display: flex;
+            gap: 2px;
+            border-bottom: 2px solid #e5e7eb;
+            margin-bottom: 28px;
+        }
+        .mode-btn {
+            background: none;
+            border: none;
+            border-bottom: 3px solid transparent;
+            padding: 8px 18px 9px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #6b7280;
+            cursor: pointer;
+            margin-bottom: -2px;
+            font-family: inherit;
+        }
+        .mode-btn:hover { color: #111827; }
+        .mode-btn.active { color: #6366f1; border-bottom-color: #6366f1; }
+        .mode-panel { display: none; }
+        .mode-panel.active { display: block; }
+
+        /* ── Two-column playground ── */
+        .workspace {
+            display: grid;
+            grid-template-columns: 220px 1fr;
+            gap: 24px;
+            margin-bottom: 36px;
+            align-items: start;
+        }
+
+        /* ── Controls ── */
+        .cgroup-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin: 0 0 8px;
+        }
+        .cgroup { display: flex; flex-direction: column; margin-bottom: 24px; }
+        .cgroup:last-child { margin-bottom: 0; }
+        .field {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #e5e7eb;
+            min-height: 34px;
+        }
+        .field:last-child { border-bottom: none; }
+        .field-label {
+            font-size: 12px;
+            color: #6b7280;
+            font-family: 'Menlo', 'Consolas', monospace;
+            flex-shrink: 0;
+        }
+        .field-value {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            justify-content: flex-end;
+            flex: 1;
+            min-width: 0;
+        }
+
+        input[type="text"] {
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 3px 7px;
+            font-size: 12px;
+            color: #111827;
+            width: 110px;
+            outline: none;
+            font-family: inherit;
+            min-width: 0;
+        }
+        input[type="text"]:focus { border-color: #6366f1; box-shadow: 0 0 0 2px rgba(99,102,241,0.15); }
+
+        .tog {
+            display: flex;
+            gap: 2px;
+            background: #f3f4f6;
+            border: 1px solid #e5e7eb;
+            border-radius: 5px;
+            padding: 2px;
+            flex-shrink: 0;
+        }
+        .tog button {
+            background: none;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 11px;
+            cursor: pointer;
+            color: #6b7280;
+            font-family: inherit;
+            white-space: nowrap;
+        }
+        .tog button.active { background: #fff; color: #111827; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+
+        .color-ctrl { display: flex; align-items: center; gap: 5px; }
+        input[type="color"] {
+            width: 26px; height: 26px;
+            border: 1px solid #e5e7eb;
+            border-radius: 4px;
+            padding: 1px;
+            cursor: pointer;
+            background: none;
+            flex-shrink: 0;
+        }
+        input[type="checkbox"] {
+            width: 13px; height: 13px;
+            cursor: pointer;
+            accent-color: #6366f1;
+            flex-shrink: 0;
+        }
+        .color-ctrl input[type="checkbox"]:not(:checked) + input[type="color"] { opacity: 0.35; }
+
+        /* ── Preview ── */
+        .preview { display: flex; flex-direction: column; gap: 20px; }
+        .psection-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #9ca3af;
+            margin: 0 0 10px;
+        }
+        .preview-box {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 16px;
+            min-height: 52px;
+        }
+        #bar-fixed-note {
+            display: none;
+            font-size: 12px;
+            color: #92400e;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin-top: 8px;
+        }
+
+        .open-opts { display: flex; flex-direction: column; gap: 2px; margin-bottom: 12px; }
+        .open-opts .field { border-bottom: none; padding: 2px 0; min-height: auto; }
+
+        .preview-btn {
+            background: #6366f1;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 13px;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .preview-btn:hover { opacity: 0.9; }
+
+        .event-log { display: flex; flex-direction: column; gap: 4px; min-height: 24px; }
+        .log-empty { font-size: 12px; color: #9ca3af; font-style: italic; }
+        .log-entry {
+            font-size: 12px;
+            font-family: 'Menlo', 'Consolas', monospace;
+            padding: 3px 8px;
+            border-radius: 4px;
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            color: #111827;
+        }
+        .log-entry--submit { background: #ecfdf5; border-color: #a7f3d0; color: #065f46; }
+        .log-entry--error  { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+
+        /* ── Code section ── */
+        .tab-strip {
+            display: flex;
+            gap: 2px;
+            border-bottom: 1px solid #e5e7eb;
+            margin-bottom: 12px;
+        }
+        .tab-btn {
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            padding: 7px 13px 8px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #6b7280;
+            cursor: pointer;
+            margin-bottom: -1px;
+            font-family: inherit;
+        }
+        .tab-btn:hover { color: #111827; }
+        .tab-btn.active { color: #6366f1; border-bottom-color: #6366f1; }
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        .code-note {
+            font-size: 12px;
+            color: #92400e;
+            background: #fffbeb;
+            border: 1px solid #fcd34d;
+            border-radius: 5px;
+            padding: 8px 12px;
+            margin-bottom: 12px;
+        }
+        .code-note code {
+            background: rgba(0,0,0,0.06);
+            padding: 1px 4px;
+            border-radius: 3px;
+            font-size: 11px;
+        }
+
+        pre.code-block {
+            border: 1px solid #e5e7eb;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.6;
+            overflow-x: auto;
+            position: relative;
+            margin: 0;
+            padding: 0;
+        }
+        pre.code-block code { padding: 16px; font-size: inherit; display: block; }
+        .copy-btn {
+            position: absolute;
+            top: 8px; right: 8px;
+            background: #e5e7eb; color: #374151;
+            border: none; border-radius: 4px;
+            padding: 3px 8px; font-size: 11px;
+            cursor: pointer; opacity: 0;
+            transition: opacity 0.1s;
+            font-family: inherit;
+        }
+        pre.code-block:hover .copy-btn { opacity: 1; }
+        .copy-btn.copied { background: #d1fae5; color: #065f46; opacity: 1; }
+
+        /* ── Dark mode ── */
+        @media (prefers-color-scheme: dark) {
+            body:not([data-theme="light"]) { background: #25272b; color: #e5e7eb; }
+            body:not([data-theme="light"]) .subtitle { color: #9ca3af; }
+            body:not([data-theme="light"]) .cgroup-title { color: #6b7280; }
+            body:not([data-theme="light"]) .field { border-color: #363840; }
+            body:not([data-theme="light"]) .field-label { color: #9ca3af; }
+            body:not([data-theme="light"]) input[type="text"] { background: #2c3630; border-color: #363840; color: #e5e7eb; }
+            body:not([data-theme="light"]) .tog { background: #2c3630; border-color: #363840; }
+            body:not([data-theme="light"]) .tog button { color: #9ca3af; }
+            body:not([data-theme="light"]) .tog button.active { background: #363840; color: #e5e7eb; }
+            body:not([data-theme="light"]) input[type="color"] { border-color: #363840; }
+            body:not([data-theme="light"]) .preview-box { background: #2c3630; border-color: #363840; }
+            body:not([data-theme="light"]) .psection-title { color: #6b7280; }
+            body:not([data-theme="light"]) .mode-strip { border-color: #363840; }
+            body:not([data-theme="light"]) .mode-btn { color: #9ca3af; }
+            body:not([data-theme="light"]) .mode-btn:hover { color: #e5e7eb; }
+            body:not([data-theme="light"]) .mode-btn.active { color: #7b9b82; border-bottom-color: #7b9b82; }
+            body:not([data-theme="light"]) .tab-strip { border-color: #363840; }
+            body:not([data-theme="light"]) .tab-btn { color: #9ca3af; }
+            body:not([data-theme="light"]) .tab-btn:hover { color: #e5e7eb; }
+            body:not([data-theme="light"]) .tab-btn.active { color: #7b9b82; border-bottom-color: #7b9b82; }
+            body:not([data-theme="light"]) pre.code-block { border-color: #363840; color: #e5e7eb; }
+            body:not([data-theme="light"]) .copy-btn { background: #363840; color: #9ca3af; }
+            body:not([data-theme="light"]) .log-entry { background: #2c3630; border-color: #363840; color: #e5e7eb; }
+            body:not([data-theme="light"]) .log-entry--submit { background: #052e16; border-color: #166534; color: #86efac; }
+            body:not([data-theme="light"]) .log-entry--error  { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+            body:not([data-theme="light"]) .log-empty { color: #6b7280; }
+            body:not([data-theme="light"]) #bar-fixed-note { background: #2d2715; border-color: #6b5a1e; color: #fde68a; }
+            body:not([data-theme="light"]) .code-note { background: #2d2715; border-color: #6b5a1e; color: #fde68a; }
+            body:not([data-theme="light"]) .code-note code { background: rgba(255,255,255,0.08); }
+            body:not([data-theme="light"]) #theme-controls button { background: #2c3630; border: 1px solid #363840; }
+            body:not([data-theme="light"]) #theme-controls button.active { background: #3a5244; border-color: #3a5244; }
+            body:not([data-theme="light"]) .preview-btn { background: #3a5244; }
+            body:not([data-theme="light"]) .preview-btn:hover { background: #4e6857; opacity: 1; }
+        }
+        body[data-theme="dark"] { background: #25272b; color: #e5e7eb; }
+        body[data-theme="dark"] .subtitle { color: #9ca3af; }
+        body[data-theme="dark"] .cgroup-title { color: #6b7280; }
+        body[data-theme="dark"] .field { border-color: #363840; }
+        body[data-theme="dark"] .field-label { color: #9ca3af; }
+        body[data-theme="dark"] input[type="text"] { background: #2c3630; border-color: #363840; color: #e5e7eb; }
+        body[data-theme="dark"] .tog { background: #2c3630; border-color: #363840; }
+        body[data-theme="dark"] .tog button { color: #9ca3af; }
+        body[data-theme="dark"] .tog button.active { background: #363840; color: #e5e7eb; }
+        body[data-theme="dark"] input[type="color"] { border-color: #363840; }
+        body[data-theme="dark"] .preview-box { background: #2c3630; border-color: #363840; }
+        body[data-theme="dark"] .psection-title { color: #6b7280; }
+        body[data-theme="dark"] .mode-strip { border-color: #363840; }
+        body[data-theme="dark"] .mode-btn { color: #9ca3af; }
+        body[data-theme="dark"] .mode-btn:hover { color: #e5e7eb; }
+        body[data-theme="dark"] .mode-btn.active { color: #7b9b82; border-bottom-color: #7b9b82; }
+        body[data-theme="dark"] .tab-strip { border-color: #363840; }
+        body[data-theme="dark"] .tab-btn { color: #9ca3af; }
+        body[data-theme="dark"] .tab-btn:hover { color: #e5e7eb; }
+        body[data-theme="dark"] .tab-btn.active { color: #7b9b82; border-bottom-color: #7b9b82; }
+        body[data-theme="dark"] pre.code-block { border-color: #363840; color: #e5e7eb; }
+        body[data-theme="dark"] .copy-btn { background: #363840; color: #9ca3af; }
+        body[data-theme="dark"] .log-entry { background: #2c3630; border-color: #363840; color: #e5e7eb; }
+        body[data-theme="dark"] .log-entry--submit { background: #052e16; border-color: #166534; color: #86efac; }
+        body[data-theme="dark"] .log-entry--error  { background: #450a0a; border-color: #7f1d1d; color: #fca5a5; }
+        body[data-theme="dark"] .log-empty { color: #6b7280; }
+        body[data-theme="dark"] #bar-fixed-note { background: #2d2715; border-color: #6b5a1e; color: #fde68a; }
+        body[data-theme="dark"] .code-note { background: #2d2715; border-color: #6b5a1e; color: #fde68a; }
+        body[data-theme="dark"] .code-note code { background: rgba(255,255,255,0.08); }
+        body[data-theme="dark"] #theme-controls button { background: #2c3630; border: 1px solid #363840; }
+        body[data-theme="dark"] #theme-controls button.active { background: #3a5244; border-color: #3a5244; }
+        body[data-theme="dark"] .preview-btn { background: #3a5244; }
+        body[data-theme="dark"] .preview-btn:hover { background: #4e6857; }
+
+        @media (max-width: 600px) {
+            .workspace { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="theme-controls">
+    <button data-scheme="auto" class="active">Auto</button>
+    <button data-scheme="light">Light</button>
+    <button data-scheme="dark">Dark</button>
+</div>
+
+<h1>InputBuffer Playground</h1>
+<p class="subtitle">Adjust controls to preview the widget live and generate integration code.</p>
+
+<!-- ── Mode tabs ── -->
+<nav class="mode-strip">
+    <button class="mode-btn active" data-mode="bar">Bar</button>
+    <button class="mode-btn" data-mode="modal">Modal</button>
+</nav>
+
+<!-- ── Bar mode ── -->
+<div class="mode-panel active" id="mode-bar">
+    <div class="workspace">
+        <aside class="controls">
+            <div class="cgroup">
+                <p class="cgroup-title">Bar</p>
+                <div class="field">
+                    <span class="field-label">label</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-label" value="Was this helpful?">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">showLabel</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-show-label">
+                            <button data-val="true" class="active">on</button>
+                            <button data-val="false">off</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">placement</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-placement">
+                            <button data-val="inline" class="active">inline</button>
+                            <button data-val="fixed">fixed</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">colorScheme</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-color-scheme-bar">
+                            <button data-val="auto" class="active">auto</button>
+                            <button data-val="light">light</button>
+                            <button data-val="dark">dark</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cgroup">
+                <p class="cgroup-title">Theme</p>
+                <div class="field">
+                    <span class="field-label">primary</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="color" id="ctrl-primary-bar" value="#6366f1">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">background</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-bg-bar">
+                            <input type="color" id="ctrl-bg-bar" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">surface</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-surface-bar">
+                            <input type="color" id="ctrl-surface-bar" value="#f0f9ff">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">text</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-text-bar">
+                            <input type="color" id="ctrl-text-bar" value="#111827">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">selected</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-selected-bar">
+                            <input type="color" id="ctrl-selected-bar" value="#10b981">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">selectedColor</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-sel-color-bar">
+                            <input type="color" id="ctrl-sel-color-bar" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cgroup">
+                <p class="cgroup-title">Popover</p>
+                <div class="field">
+                    <span class="field-label">modalTitle</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-modal-title-bar" value="" placeholder="(default)">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">modalPlaceholder</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-modal-placeholder-bar" value="" placeholder="(default)">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">showEmailField</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-show-email-bar">
+                            <button data-val="true" class="active">on</button>
+                            <button data-val="false">off</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cgroup">
+                <p class="cgroup-title">Debug</p>
+                <div class="field">
+                    <span class="field-label">forceError</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-force-error-bar">
+                            <button data-val="false" class="active">off</button>
+                            <button data-val="true">on</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <div class="preview">
+            <div>
+                <p class="psection-title">Preview</p>
+                <div class="preview-box" id="bar-slot"></div>
+                <div id="bar-fixed-note">Bar is pinned to the bottom of the viewport (fixed placement).</div>
+            </div>
+            <section class="code-section" id="code-section-bar">
+                <p class="psection-title">Generated Code</p>
+                <nav class="tab-strip">
+                    <button class="tab-btn active" data-tab="web-component">Web Component</button>
+                    <button class="tab-btn" data-tab="create-bar">createBar()</button>
+                    <button class="tab-btn" data-tab="create-bar-npm">npm import</button>
+                    <button class="tab-btn" data-tab="script-tag">Script Tag</button>
+                </nav>
+                <div class="tab-panel active" id="tab-web-component">
+                    <pre class="code-block"><button class="copy-btn">Copy</button><code id="code-web-component" class="language-html"></code></pre>
+                </div>
+                <div class="tab-panel" id="tab-create-bar">
+                    <pre class="code-block"><button class="copy-btn">Copy</button><code id="code-create-bar" class="language-javascript"></code></pre>
+                </div>
+                <div class="tab-panel" id="tab-create-bar-npm">
+                    <pre class="code-block"><button class="copy-btn">Copy</button><code id="code-create-bar-npm" class="language-javascript"></code></pre>
+                </div>
+                <div class="tab-panel" id="tab-script-tag">
+                    <p class="code-note">The script tag runs once at page load — the live preview above uses <code>createBar()</code> instead. <code>surface</code>, <code>selected</code>, <code>selectedColor</code>, and modal options require the programmatic API.</p>
+                    <pre class="code-block"><button class="copy-btn">Copy</button><code id="code-script-tag" class="language-html"></code></pre>
+                </div>
+            </section>
+            <div>
+                <p class="psection-title">Event Log</p>
+                <div class="event-log" id="event-log-bar">
+                    <span class="log-empty">Events will appear here.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Modal mode ── -->
+<div class="mode-panel" id="mode-modal">
+    <div class="workspace">
+        <aside class="controls">
+            <div class="cgroup">
+                <p class="cgroup-title">Modal</p>
+                <div class="field">
+                    <span class="field-label">title</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-title" value="" placeholder="(default)">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">placeholder</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-placeholder" value="" placeholder="(default)">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">showEmailField</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-show-email">
+                            <button data-val="false" class="active">off</button>
+                            <button data-val="true">on</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">showSentiment</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-show-sentiment">
+                            <button data-val="false" class="active">off</button>
+                            <button data-val="true">on</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cgroup">
+                <p class="cgroup-title">Theme</p>
+                <div class="field">
+                    <span class="field-label">colorScheme</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-color-scheme-modal">
+                            <button data-val="auto" class="active">auto</button>
+                            <button data-val="light">light</button>
+                            <button data-val="dark">dark</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">primary</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="color" id="ctrl-primary-modal" value="#6366f1">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">background</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-bg-modal">
+                            <input type="color" id="ctrl-bg-modal" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">surface</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-surface-modal">
+                            <input type="color" id="ctrl-surface-modal" value="#f0f9ff">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">text</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-text-modal">
+                            <input type="color" id="ctrl-text-modal" value="#111827">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">selected</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-selected-modal">
+                            <input type="color" id="ctrl-selected-modal" value="#10b981">
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">selectedColor</span>
+                    <div class="field-value">
+                        <div class="color-ctrl">
+                            <input type="checkbox" id="en-sel-color-modal">
+                            <input type="color" id="ctrl-sel-color-modal" value="#ffffff">
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cgroup">
+                <p class="cgroup-title">Open options</p>
+                <div class="field">
+                    <span class="field-label">open title</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-open-title" value="" placeholder="(none)">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">prefill text</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-open-prefill" value="" placeholder="(none)">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">prefill email</span>
+                    <div class="field-value">
+                        <input type="text" id="ctrl-open-prefill-email" value="" placeholder="(none)">
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">sentiment</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-open-sentiment">
+                            <button data-val="" class="active">none</button>
+                            <button data-val="positive">👍</button>
+                            <button data-val="negative">👎</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="cgroup">
+                <p class="cgroup-title">Debug</p>
+                <div class="field">
+                    <span class="field-label">forceError</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-force-error-modal">
+                            <button data-val="false" class="active">off</button>
+                            <button data-val="true">on</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
+        <div class="preview">
+            <div>
+                <p class="psection-title">Preview</p>
+                <button class="preview-btn" id="open-modal-btn">Open modal</button>
+            </div>
+            <section class="code-section" id="code-section-modal">
+                <p class="psection-title">Generated Code</p>
+                <nav class="tab-strip">
+                    <button class="tab-btn active" data-tab="createModal">createModal()</button>
+                    <button class="tab-btn" data-tab="createModal-npm">npm import</button>
+                    <button class="tab-btn" data-tab="createModal-script-tag">Script Tag</button>
+                </nav>
+                <div class="tab-panel active" id="tab-createModal">
+                    <pre class="code-block"><button class="copy-btn">Copy</button><code id="code-createModal" class="language-javascript"></code></pre>
+                </div>
+                <div class="tab-panel" id="tab-createModal-npm">
+                    <pre class="code-block"><button class="copy-btn">Copy</button><code id="code-createModal-npm" class="language-javascript"></code></pre>
+                </div>
+                <div class="tab-panel" id="tab-createModal-script-tag">
+                    <p class="code-note">The script tag runs once at page load — the live preview above uses <code>createModal()</code> instead.</p>
+                    <pre class="code-block"><button class="copy-btn">Copy</button><code id="code-createModal-script-tag" class="language-html"></code></pre>
+                </div>
+            </section>
+            <div>
+                <p class="psection-title">Event Log</p>
+                <div class="event-log" id="event-log-modal">
+                    <span class="log-empty">Events will appear here.</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="../dist/widget.js"></script>
+<script>
+    const apiKey = 'YOUR_API_KEY';
+    const apiUrl = 'https://inputbuffer.io/api/v0/inputs';
+
+    const PRIMARY_LIGHT = '#6366f1';
+    const PRIMARY_DARK  = '#3a5244';
+    let barPrimaryLocked   = false;
+    let modalPrimaryLocked = false;
+
+    function isDark() {
+        const t = document.body.getAttribute('data-theme');
+        if (t === 'dark') return true;
+        if (t === 'light') return false;
+        return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────
+    const barState = {
+        label: 'Was this helpful?',
+        showLabel: true,
+        placement: 'inline',
+        colorScheme: 'auto',
+        primary: PRIMARY_LIGHT,
+        background:    { enabled: false, value: '#ffffff' },
+        surface:       { enabled: false, value: '#f0f9ff' },
+        text:          { enabled: false, value: '#111827' },
+        selected:      { enabled: false, value: '#10b981' },
+        selectedColor: { enabled: false, value: '#ffffff' },
+        modalTitle: '',
+        modalPlaceholder: '',
+        showEmailField: true,
+        forceError: false,
+    };
+
+    const modalState = {
+        colorScheme: 'auto',
+        primary: PRIMARY_LIGHT,
+        background:    { enabled: false, value: '#ffffff' },
+        surface:       { enabled: false, value: '#f0f9ff' },
+        text:          { enabled: false, value: '#111827' },
+        selected:      { enabled: false, value: '#10b981' },
+        selectedColor: { enabled: false, value: '#ffffff' },
+        title: '',
+        placeholder: '',
+        showEmailField: false,
+        showSentiment: false,
+        openTitle: '',
+        openPrefill: '',
+        openPrefillEmail: '',
+        openSentiment: '',
+        forceError: false,
+    };
+
+    // ── Config builders ───────────────────────────────────────────────────
+    function buildTheme(s) {
+        const t = { primary: s.primary };
+        if (s.background.enabled)    t.background    = s.background.value;
+        if (s.surface.enabled)       t.surface       = s.surface.value;
+        if (s.text.enabled)          t.text          = s.text.value;
+        if (s.selected.enabled)      t.selected      = s.selected.value;
+        if (s.selectedColor.enabled) t.selectedColor = s.selectedColor.value;
+        return t;
+    }
+
+    function buildBarConfig() {
+        const cfg = {
+            apiKey,
+            apiUrl: barState.forceError ? 'http://localhost:0/fail' : apiUrl,
+            label: barState.label,
+            showLabel: barState.showLabel,
+            placement: barState.placement,
+            theme: buildTheme(barState),
+        };
+        if (barState.colorScheme !== 'auto') cfg.colorScheme = barState.colorScheme;
+        if (barState.modalTitle)       cfg.modalTitle       = barState.modalTitle;
+        if (barState.modalPlaceholder) cfg.modalPlaceholder = barState.modalPlaceholder;
+        if (!barState.showEmailField)  cfg.showEmailField   = false;
+        return cfg;
+    }
+
+    function buildModalConfig() {
+        const cfg = {
+            apiKey,
+            apiUrl: modalState.forceError ? 'http://localhost:0/fail' : apiUrl,
+            theme: buildTheme(modalState),
+            showEmailField: modalState.showEmailField,
+            showSentiment:  modalState.showSentiment,
+        };
+        if (modalState.colorScheme !== 'auto') cfg.colorScheme = modalState.colorScheme;
+        if (modalState.title)       cfg.title       = modalState.title;
+        if (modalState.placeholder) cfg.placeholder = modalState.placeholder;
+        return cfg;
+    }
+
+    // ── Live bar ──────────────────────────────────────────────────────────
+    let currentBar = null;
+
+    function rebuildBar() {
+        if (currentBar) { currentBar.destroy(); currentBar = null; }
+        currentBar = InputBufferIO.createBar(buildBarConfig());
+        currentBar.on('vote',   p => logEvent('bar', 'vote',   p.sentiment));
+        currentBar.on('open',   p => logEvent('bar', 'open',   p.sentiment));
+        currentBar.on('submit', r => logEvent('bar', 'submit', `id: ${r.id}`));
+        currentBar.on('close',  () => logEvent('bar', 'close', ''));
+        currentBar.on('error',  e => logEvent('bar', 'error',  e.message));
+        const slot = document.getElementById('bar-slot');
+        const note = document.getElementById('bar-fixed-note');
+        if (barState.placement === 'inline') {
+            slot.innerHTML = '';
+            slot.appendChild(currentBar.element);
+            note.style.display = 'none';
+        } else {
+            document.body.appendChild(currentBar.element);
+            slot.innerHTML = '';
+            note.style.display = 'block';
+        }
+    }
+
+    // ── Modal preview ─────────────────────────────────────────────────────
+    let modalInst = null;
+
+    document.getElementById('open-modal-btn').addEventListener('click', () => {
+        if (modalInst) { modalInst.destroy(); modalInst = null; }
+        modalInst = InputBufferIO.createModal(buildModalConfig());
+        modalInst.on('submit', r  => logEvent('modal', 'submit', `id: ${r.id}`));
+        modalInst.on('close',  () => logEvent('modal', 'close', ''));
+        modalInst.on('error',  e  => logEvent('modal', 'error', e.message));
+        const opts = {};
+        if (modalState.openTitle) opts.title = modalState.openTitle;
+        if (modalState.openPrefill || modalState.openPrefillEmail) {
+            opts.prefill = {};
+            if (modalState.openPrefill)      opts.prefill.description = modalState.openPrefill;
+            if (modalState.openPrefillEmail) opts.prefill.email       = modalState.openPrefillEmail;
+        }
+        if (modalState.openSentiment) opts.sentiment = modalState.openSentiment;
+        logEvent('modal', 'open', '');
+        modalInst.open(Object.keys(opts).length ? opts : undefined);
+    });
+
+    // ── Event log ─────────────────────────────────────────────────────────
+    function logEvent(mode, type, detail) {
+        const log = document.getElementById(`event-log-${mode}`);
+        const empty = log.querySelector('.log-empty');
+        if (empty) empty.remove();
+        const el = document.createElement('div');
+        el.className = `log-entry log-entry--${type}`;
+        const t = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        el.textContent = `[${t}] ${type}${detail ? ' — ' + detail : ''}`;
+        log.prepend(el);
+        while (log.children.length > 5) log.removeChild(log.lastChild);
+    }
+
+    // ── Code generation ───────────────────────────────────────────────────
+    function q(v) { return `'${v}'`; }
+    function htmlAttr(name, val) { return `\n    ${name}="${val}"`; }
+
+    function genWebComponent() {
+        const s2 = barState;
+        let s = '<script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/bar.js"><\\/script>\n\n';
+        s += '<inputbuffer-feedback';
+        s += htmlAttr('api-key', 'YOUR_API_KEY');
+        s += htmlAttr('label', s2.label);
+        if (s2.placement !== 'inline') s += htmlAttr('placement', s2.placement);
+        s += htmlAttr('theme-primary', s2.primary);
+        if (s2.background.enabled)    s += htmlAttr('theme-background',    s2.background.value);
+        if (s2.text.enabled)          s += htmlAttr('theme-text',          s2.text.value);
+        if (s2.selected.enabled)      s += htmlAttr('theme-selected',      s2.selected.value);
+        if (s2.selectedColor.enabled) s += htmlAttr('theme-selected-color',s2.selectedColor.value);
+        s += '>\n</inputbuffer-feedback>';
+        return s;
+    }
+
+    function genCreateBar() {
+        const s = barState;
+        const lines = [
+            `// <script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/bar.js"><\/script>`,
+            `const bar = InputBufferIO.createBar({`,
+            `    apiKey: 'YOUR_API_KEY',`,
+        ];
+        lines.push(`    label: ${q(s.label)},`);
+        if (!s.showLabel)             lines.push(`    showLabel: false,`);
+        if (s.placement !== 'inline') lines.push(`    placement: ${q(s.placement)},`);
+        if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
+        if (s.modalTitle)       lines.push(`    modalTitle: ${q(s.modalTitle)},`);
+        if (s.modalPlaceholder) lines.push(`    modalPlaceholder: ${q(s.modalPlaceholder)},`);
+        if (!s.showEmailField)  lines.push(`    showEmailField: false,`);
+        lines.push(`    theme: {`);
+        lines.push(`        primary: ${q(s.primary)},`);
+        if (s.background.enabled)    lines.push(`        background: ${q(s.background.value)},`);
+        if (s.surface.enabled)       lines.push(`        surface: ${q(s.surface.value)},`);
+        if (s.text.enabled)          lines.push(`        text: ${q(s.text.value)},`);
+        if (s.selected.enabled)      lines.push(`        selected: ${q(s.selected.value)},`);
+        if (s.selectedColor.enabled) lines.push(`        selectedColor: ${q(s.selectedColor.value)},`);
+        lines.push(`    },`);
+        lines.push(`});`, ``);
+        if (s.placement === 'fixed') {
+            lines.push(`document.body.appendChild(bar.element);`);
+        } else {
+            lines.push(`document.getElementById('slot').appendChild(bar.element);`);
+        }
+        return lines.join('\n');
+    }
+
+    function genCreateBarNpm() {
+        const s = barState;
+        const lines = [
+            `import { createBar } from '@inputbuffer/feedback/bar';`,
+            ``,
+            `const bar = createBar({`,
+            `    apiKey: 'YOUR_API_KEY',`,
+        ];
+        lines.push(`    label: ${q(s.label)},`);
+        if (!s.showLabel)             lines.push(`    showLabel: false,`);
+        if (s.placement !== 'inline') lines.push(`    placement: ${q(s.placement)},`);
+        if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
+        if (s.modalTitle)       lines.push(`    modalTitle: ${q(s.modalTitle)},`);
+        if (s.modalPlaceholder) lines.push(`    modalPlaceholder: ${q(s.modalPlaceholder)},`);
+        if (!s.showEmailField)  lines.push(`    showEmailField: false,`);
+        lines.push(`    theme: {`);
+        lines.push(`        primary: ${q(s.primary)},`);
+        if (s.background.enabled)    lines.push(`        background: ${q(s.background.value)},`);
+        if (s.surface.enabled)       lines.push(`        surface: ${q(s.surface.value)},`);
+        if (s.text.enabled)          lines.push(`        text: ${q(s.text.value)},`);
+        if (s.selected.enabled)      lines.push(`        selected: ${q(s.selected.value)},`);
+        if (s.selectedColor.enabled) lines.push(`        selectedColor: ${q(s.selectedColor.value)},`);
+        lines.push(`    },`);
+        lines.push(`});`, ``);
+        if (s.placement === 'fixed') {
+            lines.push(`document.body.appendChild(bar.element);`);
+        } else {
+            lines.push(`document.getElementById('slot').appendChild(bar.element);`);
+        }
+        return lines.join('\n');
+    }
+
+    function genScriptTag() {
+        const s = barState;
+        let out = '<script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/bar.js">';
+        out += '\n<\\/script>\n\n<inputbuffer-feedback';
+        out += htmlAttr('api-key', 'YOUR_API_KEY');
+        if (s.label)                  out += htmlAttr('label', s.label);
+        if (s.placement !== 'inline') out += htmlAttr('placement', s.placement);
+        out += htmlAttr('theme-primary', s.primary);
+        if (s.background.enabled)    out += htmlAttr('theme-background',    s.background.value);
+        if (s.text.enabled)          out += htmlAttr('theme-text',          s.text.value);
+        if (s.selected.enabled)      out += htmlAttr('theme-selected',      s.selected.value);
+        if (s.selectedColor.enabled) out += htmlAttr('theme-selected-color',s.selectedColor.value);
+        out += '>\n</inputbuffer-feedback>';
+        return out;
+    }
+
+    function genInit() {
+        const s = modalState;
+        const lines = [
+            `// <script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/modal.js"><\/script>`,
+            `const ib = InputBufferIO.createModal({`,
+            `    apiKey: 'YOUR_API_KEY',`,
+        ];
+        if (s.title)            lines.push(`    title: ${q(s.title)},`);
+        if (s.placeholder)      lines.push(`    placeholder: ${q(s.placeholder)},`);
+        if (s.showEmailField)   lines.push(`    showEmailField: true,`);
+        if (s.showSentiment)    lines.push(`    showSentiment: true,`);
+        if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
+        lines.push(`    theme: {`);
+        lines.push(`        primary: ${q(s.primary)},`);
+        if (s.background.enabled)    lines.push(`        background: ${q(s.background.value)},`);
+        if (s.surface.enabled)       lines.push(`        surface: ${q(s.surface.value)},`);
+        if (s.text.enabled)          lines.push(`        text: ${q(s.text.value)},`);
+        if (s.selected.enabled)      lines.push(`        selected: ${q(s.selected.value)},`);
+        if (s.selectedColor.enabled) lines.push(`        selectedColor: ${q(s.selectedColor.value)},`);
+        lines.push(`    },`, `});`, ``);
+
+        const openLines = [];
+        if (s.openTitle) openLines.push(`    title: ${q(s.openTitle)},`);
+        const prefillParts = [];
+        if (s.openPrefill)      prefillParts.push(`description: ${q(s.openPrefill)}`);
+        if (s.openPrefillEmail) prefillParts.push(`email: ${q(s.openPrefillEmail)}`);
+        if (prefillParts.length) openLines.push(`    prefill: { ${prefillParts.join(', ')} },`);
+        if (s.openSentiment) openLines.push(`    sentiment: ${q(s.openSentiment)},`);
+        if (openLines.length) {
+            lines.push(`ib.open({`, ...openLines, `});`);
+        } else {
+            lines.push(`ib.open();`);
+        }
+        lines.push(
+            ``,
+            `// ── events ──────────────────────────────────────────────────`,
+            `ib.on('submit', (r) => console.log('submitted:', r.id));`,
+            `ib.on('close',  ()  => console.log('closed'));`,
+            `ib.on('error',  (e) => console.error('error:', e));`,
+            ``,
+            `// ── target examples (no visual effect, affects API payload) ─`,
+            `// ib.open({ target: { type: 'documentation',`,
+            `//   metadata: { page_url: window.location.href } } });`,
+            `// ib.open({ target: { type: 'rest_endpoint',`,
+            `//   metadata: { method: 'GET', path: '/api/users/{id}' } } });`,
+            `// ib.open({ target: { type: 'cli_command',`,
+            `//   metadata: { command: 'my-cli deploy --env production' } } });`,
+        );
+        return lines.join('\n');
+    }
+
+    function genInitNpm() {
+        const s = modalState;
+        const lines = [
+            `import { createModal } from '@inputbuffer/feedback/modal';`,
+            ``,
+            `const ib = createModal({`,
+            `    apiKey: 'YOUR_API_KEY',`,
+        ];
+        if (s.title)            lines.push(`    title: ${q(s.title)},`);
+        if (s.placeholder)      lines.push(`    placeholder: ${q(s.placeholder)},`);
+        if (s.showEmailField)   lines.push(`    showEmailField: true,`);
+        if (s.showSentiment)    lines.push(`    showSentiment: true,`);
+        if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
+        lines.push(`    theme: {`);
+        lines.push(`        primary: ${q(s.primary)},`);
+        if (s.background.enabled)    lines.push(`        background: ${q(s.background.value)},`);
+        if (s.surface.enabled)       lines.push(`        surface: ${q(s.surface.value)},`);
+        if (s.text.enabled)          lines.push(`        text: ${q(s.text.value)},`);
+        if (s.selected.enabled)      lines.push(`        selected: ${q(s.selected.value)},`);
+        if (s.selectedColor.enabled) lines.push(`        selectedColor: ${q(s.selectedColor.value)},`);
+        lines.push(`    },`, `});`, ``);
+        const openLines = [];
+        if (s.openTitle) openLines.push(`    title: ${q(s.openTitle)},`);
+        const prefillParts = [];
+        if (s.openPrefill)      prefillParts.push(`description: ${q(s.openPrefill)}`);
+        if (s.openPrefillEmail) prefillParts.push(`email: ${q(s.openPrefillEmail)}`);
+        if (prefillParts.length) openLines.push(`    prefill: { ${prefillParts.join(', ')} },`);
+        if (s.openSentiment) openLines.push(`    sentiment: ${q(s.openSentiment)},`);
+        if (openLines.length) {
+            lines.push(`ib.open({`, ...openLines, `});`);
+        } else {
+            lines.push(`ib.open();`);
+        }
+        return lines.join('\n');
+    }
+
+    function genInitScriptTag() {
+        const s = modalState;
+        let out = '<button id="feedback-btn">Send feedback</button>\n\n';
+        out += '<script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/modal.js"';
+        out += htmlAttr('data-api-key', 'YOUR_API_KEY');
+        out += htmlAttr('data-attach-to', '#feedback-btn');
+        out += htmlAttr('data-theme-primary', s.primary);
+        if (s.background.enabled) out += htmlAttr('data-theme-background', s.background.value);
+        if (s.text.enabled)       out += htmlAttr('data-theme-text',       s.text.value);
+        out += '>\n<\\/script>';
+        return out;
+    }
+
+    // ── Update code display ───────────────────────────────────────────────
+    function updateCode() {
+        const gens = {
+            'web-component':  genWebComponent,
+            'create-bar':     genCreateBar,
+            'create-bar-npm': genCreateBarNpm,
+            'script-tag':     genScriptTag,
+            'createModal':           genInit,
+            'createModal-npm':       genInitNpm,
+            'createModal-script-tag': genInitScriptTag,
+        };
+        for (const [tab, gen] of Object.entries(gens)) {
+            const el = document.getElementById(`code-${tab}`);
+            if (!el) continue;
+            el.textContent = gen();
+            el.removeAttribute('data-highlighted');
+            hljs.highlightElement(el);
+        }
+    }
+
+    function applyState() {
+        rebuildBar();
+        updateCode();
+    }
+
+    // ── Wire controls ─────────────────────────────────────────────────────
+    function wireText(id, st, key) {
+        document.getElementById(id).addEventListener('input', e => {
+            st[key] = e.target.value;
+            applyState();
+        });
+    }
+
+    function wireTog(id, st, key, transform) {
+        document.getElementById(id).addEventListener('click', e => {
+            const btn = e.target.closest('button[data-val]');
+            if (!btn) return;
+            document.querySelectorAll(`#${id} button`).forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            st[key] = transform ? transform(btn.dataset.val) : btn.dataset.val;
+            applyState();
+        });
+    }
+
+    function wireColor(enId, colorId, st, key) {
+        const enEl    = document.getElementById(enId);
+        const colorEl = document.getElementById(colorId);
+        enEl.addEventListener('change', () => {
+            st[key].enabled = enEl.checked;
+            applyState();
+        });
+        colorEl.addEventListener('input', e => {
+            st[key].value = e.target.value;
+            if (!st[key].enabled) { st[key].enabled = true; enEl.checked = true; }
+            applyState();
+        });
+    }
+
+    const asBool = v => v === 'true';
+
+    // Bar controls
+    wireText('ctrl-label', barState, 'label');
+    wireTog('tog-show-label',       barState, 'showLabel',  asBool);
+    wireTog('tog-placement',        barState, 'placement');
+    wireTog('tog-color-scheme-bar', barState, 'colorScheme');
+    document.getElementById('ctrl-primary-bar').addEventListener('input', e => {
+        barPrimaryLocked = true;
+        barState.primary = e.target.value;
+        applyState();
+    });
+    wireColor('en-bg-bar',        'ctrl-bg-bar',        barState, 'background');
+    wireColor('en-surface-bar',   'ctrl-surface-bar',   barState, 'surface');
+    wireColor('en-text-bar',      'ctrl-text-bar',      barState, 'text');
+    wireColor('en-selected-bar',  'ctrl-selected-bar',  barState, 'selected');
+    wireColor('en-sel-color-bar', 'ctrl-sel-color-bar', barState, 'selectedColor');
+    wireText('ctrl-modal-title-bar',       barState, 'modalTitle');
+    wireText('ctrl-modal-placeholder-bar', barState, 'modalPlaceholder');
+    wireTog('tog-show-email-bar',          barState, 'showEmailField', asBool);
+    wireTog('tog-force-error-bar',   barState,   'forceError', asBool);
+    wireTog('tog-force-error-modal', modalState, 'forceError', asBool);
+
+    // Modal controls
+    wireTog('tog-color-scheme-modal', modalState, 'colorScheme');
+    document.getElementById('ctrl-primary-modal').addEventListener('input', e => {
+        modalPrimaryLocked = true;
+        modalState.primary = e.target.value;
+        applyState();
+    });
+    wireColor('en-bg-modal',        'ctrl-bg-modal',        modalState, 'background');
+    wireColor('en-surface-modal',   'ctrl-surface-modal',   modalState, 'surface');
+    wireColor('en-text-modal',      'ctrl-text-modal',      modalState, 'text');
+    wireColor('en-selected-modal',  'ctrl-selected-modal',  modalState, 'selected');
+    wireColor('en-sel-color-modal', 'ctrl-sel-color-modal', modalState, 'selectedColor');
+    wireText('ctrl-title',       modalState, 'title');
+    wireText('ctrl-placeholder', modalState, 'placeholder');
+    wireTog('tog-show-email',     modalState, 'showEmailField', asBool);
+    wireTog('tog-show-sentiment', modalState, 'showSentiment',  asBool);
+    wireText('ctrl-open-title',         modalState, 'openTitle');
+    wireText('ctrl-open-prefill',       modalState, 'openPrefill');
+    wireText('ctrl-open-prefill-email', modalState, 'openPrefillEmail');
+    wireTog('tog-open-sentiment', modalState, 'openSentiment');
+
+    // ── Mode tabs ─────────────────────────────────────────────────────────
+    document.querySelector('.mode-strip').addEventListener('click', e => {
+        const btn = e.target.closest('.mode-btn');
+        if (!btn) return;
+        document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById(`mode-${btn.dataset.mode}`).classList.add('active');
+    });
+
+    // ── Code tabs (scoped per section) ────────────────────────────────────
+    document.querySelectorAll('.code-section .tab-strip').forEach(strip => {
+        strip.addEventListener('click', e => {
+            const btn = e.target.closest('.tab-btn');
+            if (!btn) return;
+            const section = strip.closest('.code-section');
+            section.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+            section.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+            btn.classList.add('active');
+            section.querySelector(`#tab-${btn.dataset.tab}`).classList.add('active');
+        });
+    });
+
+    // ── Copy buttons ──────────────────────────────────────────────────────
+    document.addEventListener('click', e => {
+        const btn = e.target.closest('.copy-btn');
+        if (!btn) return;
+        const text = btn.closest('pre').querySelector('code').textContent;
+        navigator.clipboard.writeText(text).then(() => {
+            btn.textContent = 'Copied!';
+            btn.classList.add('copied');
+            setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+        });
+    });
+
+    // ── Page scheme ───────────────────────────────────────────────────────
+    const HLJS = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/';
+    function applyPageScheme(scheme) {
+        document.querySelectorAll('#theme-controls button').forEach(b => {
+            b.classList.toggle('active', b.dataset.scheme === scheme);
+        });
+        if (scheme === 'auto') document.body.removeAttribute('data-theme');
+        else document.body.setAttribute('data-theme', scheme);
+        const dark = scheme === 'dark' || (scheme === 'auto' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+        document.getElementById('hljs-theme').href = HLJS + (dark ? 'github-dark.min.css' : 'github.min.css');
+        if (!barPrimaryLocked) {
+            const p = dark ? PRIMARY_DARK : PRIMARY_LIGHT;
+            barState.primary = p;
+            document.getElementById('ctrl-primary-bar').value = p;
+        }
+        if (!modalPrimaryLocked) {
+            const p = dark ? PRIMARY_DARK : PRIMARY_LIGHT;
+            modalState.primary = p;
+            document.getElementById('ctrl-primary-modal').value = p;
+        }
+        barState.colorScheme = scheme;
+        modalState.colorScheme = scheme;
+        document.querySelectorAll('#tog-color-scheme-bar button, #tog-color-scheme-modal button').forEach(b => {
+            b.classList.toggle('active', b.dataset.val === scheme);
+        });
+    }
+    document.getElementById('theme-controls').addEventListener('click', e => {
+        const btn = e.target.closest('button[data-scheme]');
+        if (btn) { applyPageScheme(btn.dataset.scheme); applyState(); }
+    });
+
+    // ── Boot ──────────────────────────────────────────────────────────────
+    applyPageScheme('auto');
+    applyState();
+</script>
+
+</body>
+</html>

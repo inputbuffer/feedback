@@ -1,0 +1,292 @@
+/* InputBuffer Feedback Bar Styles
+ * .ib-bar-* and .ib-bar-popover* classes are stable public API — do not rename them.
+ * Developers may target these classes from their own stylesheets to customize the widget.
+ */
+
+.ib-bar-wrapper {
+    --ib-primary: #6366f1;
+    --ib-primary-hover: #4338ca;
+    --ib-background: #f6f6f8;
+    --ib-surface: #ffffff;
+    --ib-text: #111827;
+    --ib-muted: #8d99ae;
+    --ib-border: var(--ib-primary);
+    --ib-focus-color: var(--ib-primary);
+    --ib-input-hover-border: var(--ib-border);
+    --ib-selected: var(--ib-primary);
+    --ib-selected-color: var(--ib-surface);
+    --ib-radius: 2px;
+    --ib-radius-input: 2px;
+
+    position: relative;
+    display: inline-block;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.ib-bar-wrapper--fixed {
+    position: fixed;
+    bottom: 32px;
+    right: 32px;
+    z-index: 9998;
+}
+
+.ib-bar {
+    display: inline-flex;
+    align-items: stretch;
+    height: 40px;
+    width: 100%;
+    overflow: hidden;
+
+    background-color: var(--ib-background);
+    border: 1px solid var(--ib-border);
+    border-radius: 2px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    box-sizing: border-box;
+}
+
+.ib-bar-popover {
+    display: none;
+    position: absolute;
+    bottom: calc(100% + 8px);
+    right: 0;
+    width: 320px;
+
+    border: 1px solid var(--ib-border);
+    border-radius: var(--ib-radius);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+    box-sizing: border-box;
+    z-index: 9999;
+    overflow: hidden;
+}
+
+.ib-bar-popover--visible {
+    display: block;
+}
+
+.ib-bar-header {
+    background: var(--ib-surface);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ib-border);
+}
+
+.ib-bar-body {
+    background: var(--ib-background);
+    padding: 16px;
+}
+
+.ib-bar-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--ib-text);
+    margin: 0;
+}
+
+.ib-bar-textarea {
+    width: 100%;
+    background: var(--ib-background);
+    border: 1px solid var(--ib-border);
+    border-radius: var(--ib-radius-input);
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ib-text);
+    resize: vertical;
+    min-height: 80px;
+    box-sizing: border-box;
+    outline: none;
+    display: block;
+}
+
+.ib-bar-textarea:hover {
+    border-color: var(--ib-input-hover-border);
+}
+
+.ib-bar-textarea:focus {
+    border-color: var(--ib-focus-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
+}
+
+.ib-bar-email {
+    width: 100%;
+    background: var(--ib-background);
+    border: 1px solid var(--ib-border);
+    border-radius: var(--ib-radius-input);
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ib-text);
+    box-sizing: border-box;
+    margin-top: 8px;
+    outline: none;
+    display: block;
+}
+
+.ib-bar-email:hover {
+    border-color: var(--ib-input-hover-border);
+}
+
+.ib-bar-email:focus {
+    border-color: var(--ib-focus-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
+}
+
+.ib-bar-submit {
+    background: var(--ib-primary);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--ib-radius-input);
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 10px;
+    display: inline-block;
+    transition: background 0.15s;
+}
+
+.ib-bar-submit:hover {
+    background: var(--ib-primary-hover);
+}
+
+.ib-bar-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.ib-bar-error {
+    color: #dc2626;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 8px 0 0;
+    min-height: 0;
+}
+
+.ib-bar-success {
+    color: #16a34a;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 8px 0 0;
+    min-height: 0;
+}
+
+.ib-bar-label-area {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+}
+
+.ib-bar-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ib-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    white-space: nowrap;
+}
+
+.ib-bar-actions {
+    display: flex;
+    align-items: stretch;
+    background: var(--ib-background);
+    border-left: 1px solid var(--ib-border);
+}
+
+.ib-bar-actions--no-label {
+    border-left: none;
+}
+
+.ib-bar-btn {
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ib-background);
+    border: none;
+    border-right: 1px solid var(--ib-border);
+    border-radius: 0;
+    color: var(--ib-primary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.1s;
+    padding: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+    margin: 0;
+}
+
+.ib-bar-btn--down {
+    border-right: none;
+}
+
+.ib-bar-btn:hover {
+    background: var(--ib-primary);
+    color: var(--ib-surface);
+    transform: scale(1.15);
+}
+
+.ib-bar-btn:active {
+    transform: scale(0.95);
+}
+
+.ib-bar-btn:focus {
+    outline: 1px solid var(--ib-primary);
+    outline-offset: -1px;
+}
+
+.ib-bar-btn--active {
+    background: var(--ib-selected);
+    color: var(--ib-selected-color);
+}
+
+.ib-bar-btn--active:hover {
+    background: var(--ib-primary-hover, var(--ib-primary));
+    color: var(--ib-surface);
+    transform: scale(1.1);
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+    .ib-bar-wrapper:not(.ib-theme-light),
+    .ib-bar-wrapper.ib-theme-dark {
+        --ib-primary: #3A5244;
+        --ib-primary-hover: #4E6857;
+        --ib-background: #25272B;
+        --ib-surface: #2C3630;
+        --ib-text: #E5E7EB;
+        --ib-muted: #9CA3AF;
+        --ib-border: #363840;
+        --ib-focus-color: #7B9B82;
+        --ib-input-hover-border: rgba(255, 255, 255, 0.2);
+        --ib-selected: #7B9B82;
+        --ib-selected-color: #1a2420;
+        --ib-radius: 8px;
+        --ib-radius-input: 4px;
+    }
+}
+
+.ib-bar-wrapper.ib-theme-dark {
+    --ib-primary: #3A5244;
+    --ib-primary-hover: #4E6857;
+    --ib-background: #25272B;
+    --ib-surface: #2C3630;
+    --ib-text: #E5E7EB;
+    --ib-muted: #9CA3AF;
+    --ib-border: #363840;
+    --ib-focus-color: #7B9B82;
+    --ib-input-hover-border: rgba(255, 255, 255, 0.2);
+    --ib-selected: #7B9B82;
+    --ib-selected-color: #1a2420;
+    --ib-radius: 8px;
+    --ib-radius-input: 4px;
+}

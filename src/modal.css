@@ -1,0 +1,275 @@
+/* InputBuffer Modal Styles
+ * All #ib-* IDs are stable public API — do not rename them.
+ * Developers may target these IDs from their own stylesheets to customize the widget.
+ */
+
+#ib-overlay {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 2147483647;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#ib-modal {
+    --ib-primary: #6366f1;
+    --ib-primary-hover: #4338ca;
+    --ib-background: #f6f6f8;
+    --ib-surface: #ffffff;
+    --ib-text: #111827;
+    --ib-muted: #8d99ae;
+    --ib-border: var(--ib-primary);
+    --ib-focus-color: var(--ib-primary);
+    --ib-input-hover-border: var(--ib-border);
+    --ib-selected: var(--ib-primary);
+    --ib-selected-color: var(--ib-surface);
+    --ib-radius: 2px;
+    --ib-radius-input: 2px;
+
+    color: var(--ib-text);
+    border: 1px solid var(--ib-border);
+    border-radius: var(--ib-radius);
+    width: 100%;
+    max-width: 480px;
+    margin: 16px;
+    position: relative;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    font-size: 14px;
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+#ib-modal-header {
+    background: var(--ib-surface);
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ib-border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+#ib-modal-body {
+    background-color: var(--ib-background);
+    padding: 16px;
+}
+
+#ib-title,
+.ib-modal-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin: 0;
+    color: var(--ib-muted);
+    flex: 1;
+}
+
+#ib-textarea,
+.ib-modal-textarea {
+    width: 100%;
+    background: var(--ib-background);
+    border: 1px solid var(--ib-border);
+    border-radius: var(--ib-radius-input);
+    padding: 10px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ib-text);
+    resize: vertical;
+    min-height: 100px;
+    box-sizing: border-box;
+    outline: none;
+    display: block;
+}
+
+#ib-textarea:hover,
+.ib-modal-textarea:hover {
+    border-color: var(--ib-input-hover-border);
+}
+
+#ib-textarea:focus,
+.ib-modal-textarea:focus {
+    border-color: var(--ib-focus-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
+}
+
+#ib-email,
+.ib-modal-email {
+    width: 100%;
+    background: var(--ib-background);
+    border: 1px solid var(--ib-border);
+    border-radius: var(--ib-radius-input);
+    padding: 8px 12px;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--ib-text);
+    box-sizing: border-box;
+    margin-top: 10px;
+    outline: none;
+    display: block;
+}
+
+#ib-email:hover,
+.ib-modal-email:hover {
+    border-color: var(--ib-input-hover-border);
+}
+
+#ib-email:focus,
+.ib-modal-email:focus {
+    border-color: var(--ib-focus-color);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
+}
+
+#ib-submit,
+.ib-modal-submit {
+    background: var(--ib-primary);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--ib-radius-input);
+    padding: 8px 16px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-family: inherit;
+    cursor: pointer;
+    margin-top: 12px;
+    display: inline-block;
+    transition: background 0.15s;
+}
+
+#ib-submit:hover,
+.ib-modal-submit:hover {
+    background: var(--ib-primary-hover);
+}
+
+#ib-submit:disabled,
+.ib-modal-submit:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+#ib-close,
+.ib-modal-close {
+    background: none;
+    border: none;
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--ib-muted);
+    padding: 2px 6px;
+    margin: 0;
+    border-radius: var(--ib-radius-input);
+    flex-shrink: 0;
+}
+
+#ib-close:hover,
+.ib-modal-close:hover {
+    color: var(--ib-primary);
+}
+
+#ib-success,
+.ib-modal-success {
+    color: #16a34a;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 8px 0 0;
+    display: none;
+}
+
+#ib-error,
+.ib-modal-error {
+    color: #dc2626;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin: 8px 0 0;
+    display: none;
+}
+
+/* Modal sentiment thumbs */
+
+.ib-modal-sentiment {
+    display: flex;
+    gap: 4px;
+}
+
+.ib-modal-thumb {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ib-background);
+    border: 1px solid var(--ib-border);
+    border-radius: var(--ib-radius-input);
+    color: var(--ib-primary);
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+    padding: 0;
+    margin: 0;
+    flex-shrink: 0;
+    -webkit-appearance: none;
+    appearance: none;
+    box-sizing: border-box;
+}
+
+.ib-modal-thumb:hover {
+    background: var(--ib-primary);
+    color: var(--ib-surface);
+}
+
+.ib-modal-thumb:focus {
+    outline: 1px solid var(--ib-primary);
+    outline-offset: -1px;
+}
+
+.ib-modal-thumb--active {
+    background: var(--ib-selected);
+    color: var(--ib-selected-color);
+}
+
+.ib-modal-thumb--active:hover {
+    background: var(--ib-primary-hover);
+}
+
+/* ── Dark theme ─────────────────────────────────────────────────────────── */
+
+@media (prefers-color-scheme: dark) {
+    #ib-modal:not(.ib-theme-light),
+    #ib-modal.ib-theme-dark {
+        --ib-primary: #3A5244;
+        --ib-primary-hover: #4E6857;
+        --ib-background: #25272B;
+        --ib-surface: #2C3630;
+        --ib-text: #E5E7EB;
+        --ib-muted: #9CA3AF;
+        --ib-border: #363840;
+        --ib-focus-color: #7B9B82;
+        --ib-input-hover-border: rgba(255, 255, 255, 0.2);
+        --ib-radius: 8px;
+        --ib-radius-input: 4px;
+    }
+}
+
+#ib-modal.ib-theme-dark {
+    --ib-primary: #3A5244;
+    --ib-primary-hover: #4E6857;
+    --ib-background: #25272B;
+    --ib-surface: #2C3630;
+    --ib-text: #E5E7EB;
+    --ib-muted: #9CA3AF;
+    --ib-border: #363840;
+    --ib-focus-color: #7B9B82;
+    --ib-input-hover-border: rgba(255, 255, 255, 0.2);
+    --ib-radius: 8px;
+    --ib-radius-input: 4px;
+}
