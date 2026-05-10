@@ -77,10 +77,11 @@ describe('createFeedbackBar', () => {
             expect(bar.element.querySelector('.ib-bar-title')!.textContent).toBe('How did we do?');
         });
 
-        it('uses default modal title', () => {
+        it('renders no title element when modalTitle is not configured', () => {
             const bar = createFeedbackBar({ apiKey: 'key' });
             document.body.appendChild(bar.element);
-            expect(bar.element.querySelector('.ib-bar-title')!.textContent).toBe('Share your feedback');
+            expect(bar.element.querySelector('.ib-bar-title')).toBeNull();
+            expect(bar.element.querySelector('.ib-bar-popover')!.getAttribute('aria-label')).toBe('Feedback');
         });
 
         it('uses custom modal placeholder', () => {
@@ -89,16 +90,16 @@ describe('createFeedbackBar', () => {
             expect((bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).placeholder).toBe('Enter your thoughts');
         });
 
-        it('shows email field by default', () => {
+        it('hides email field by default', () => {
             const bar = createFeedbackBar({ apiKey: 'key' });
             document.body.appendChild(bar.element);
-            expect(bar.element.querySelector('.ib-bar-email')).not.toBeNull();
+            expect(bar.element.querySelector('.ib-bar-email')).toBeNull();
         });
 
-        it('hides email field when showEmailField is false', () => {
-            const bar = createFeedbackBar({ apiKey: 'key', showEmailField: false });
+        it('shows email field when showEmailField is true', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showEmailField: true });
             document.body.appendChild(bar.element);
-            expect(bar.element.querySelector('.ib-bar-email')).toBeNull();
+            expect(bar.element.querySelector('.ib-bar-email')).not.toBeNull();
         });
     });
 
@@ -193,7 +194,7 @@ describe('createFeedbackBar', () => {
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', null, { sentiment: 'positive' }, undefined);
+            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', null, null, expect.objectContaining({ sentiment: 'positive' }), undefined);
         });
 
         it('passes negative sentiment when down button was clicked', async () => {
@@ -204,12 +205,12 @@ describe('createFeedbackBar', () => {
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toEqual({ sentiment: 'negative' });
+            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toMatchObject({ sentiment: 'negative' });
         });
 
         it('passes email when entered', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            const bar = createFeedbackBar({ apiKey: 'key' });
+            const bar = createFeedbackBar({ apiKey: 'key', showEmailField: true });
             document.body.appendChild(bar.element);
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
@@ -227,7 +228,7 @@ describe('createFeedbackBar', () => {
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toBe('https://custom.api/inputs');
+            expect(vi.mocked(submitFeedback).mock.calls[0][5]).toBe('https://custom.api/inputs');
         });
 
         it('shows success message after successful submit', async () => {

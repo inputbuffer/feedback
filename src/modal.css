@@ -98,8 +98,10 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }
 
-#ib-email,
-.ib-modal-email {
+#ib-modal-body #ib-title-input,
+#ib-modal-body .ib-modal-title-input,
+#ib-modal-body #ib-email,
+#ib-modal-body .ib-modal-email {
     width: 100%;
     background: var(--ib-background);
     border: 1px solid var(--ib-border);
@@ -109,18 +111,31 @@
     font-family: inherit;
     color: var(--ib-text);
     box-sizing: border-box;
-    margin-top: 10px;
     outline: none;
     display: block;
 }
 
-#ib-email:hover,
-.ib-modal-email:hover {
+#ib-title-input,
+.ib-modal-title-input {
+    margin-bottom: 10px;
+}
+
+#ib-email,
+.ib-modal-email {
+    margin-top: 10px;
+}
+
+#ib-modal-body #ib-title-input:hover,
+#ib-modal-body .ib-modal-title-input:hover,
+#ib-modal-body #ib-email:hover,
+#ib-modal-body .ib-modal-email:hover {
     border-color: var(--ib-input-hover-border);
 }
 
-#ib-email:focus,
-.ib-modal-email:focus {
+#ib-modal-body #ib-title-input:focus,
+#ib-modal-body .ib-modal-title-input:focus,
+#ib-modal-body #ib-email:focus,
+#ib-modal-body .ib-modal-email:focus {
     border-color: var(--ib-focus-color);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }
@@ -138,7 +153,6 @@
     letter-spacing: 0.08em;
     font-family: inherit;
     cursor: pointer;
-    margin-top: 12px;
     display: inline-block;
     transition: background 0.15s;
 }
@@ -182,6 +196,25 @@
     letter-spacing: 0.08em;
     margin: 8px 0 0;
     display: none;
+}
+
+.ib-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 12px;
+}
+
+.ib-branding a {
+    font-size: 10px;
+    color: var(--ib-muted);
+    text-decoration: none;
+    letter-spacing: 0.03em;
+}
+
+.ib-branding a:hover {
+    color: var(--ib-primary);
+    text-decoration: underline;
 }
 
 #ib-error,

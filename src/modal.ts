@@ -32,11 +32,13 @@ export function createModal(config: WidgetConfig) {
 
     // Closure refs to DOM elements — set by buildDOM, cleared by close
     let textareaEl: HTMLTextAreaElement | null = null;
+    let titleInputEl: HTMLInputElement | null = null;
     let emailInputEl: HTMLInputElement | null = null;
     let submitBtnEl: HTMLButtonElement | null = null;
     let errorEl: HTMLElement | null = null;
     let successEl: HTMLElement | null = null;
     let titleEl: HTMLElement | null = null;
+    let headerEl: HTMLElement | null = null;
 
     const submitHandlers: SubmitHandler[] = [];
     const closeHandlers: CloseHandler[] = [];
@@ -89,12 +91,14 @@ export function createModal(config: WidgetConfig) {
 
         try {
             const email = emailInputEl?.value.trim() || currentOptions?.prefill?.email || null;
+            const title = titleInputEl?.value.trim() || null;
             const sentiment = currentSentiment ?? currentOptions?.sentiment;
             const result = await submitFeedback(
                 config.apiKey,
                 description,
                 email || null,
-                { ...currentOptions, sentiment },
+                title,
+                { ...currentOptions, sentiment, source: currentOptions?.source ?? config.source },
                 config.apiUrl
             );
 
@@ -126,17 +130,22 @@ export function createModal(config: WidgetConfig) {
         else if (config.colorScheme === 'light') modal.classList.add('ib-theme-light');
         modal.setAttribute('role', 'dialog');
         modal.setAttribute('aria-modal', 'true');
-        modal.setAttribute('aria-labelledby', 'ib-title');
 
         // Header
         const header = document.createElement('div');
         header.id = 'ib-modal-header';
+        headerEl = header;
 
-        titleEl = document.createElement('h2');
-        titleEl.id = 'ib-title';
-        titleEl.className = 'ib-modal-title';
-        titleEl.textContent = config.title || 'Share your feedback';
-        header.appendChild(titleEl);
+        if (config.title) {
+            modal.setAttribute('aria-labelledby', 'ib-title');
+            titleEl = document.createElement('h2');
+            titleEl.id = 'ib-title';
+            titleEl.className = 'ib-modal-title';
+            titleEl.textContent = config.title;
+            header.appendChild(titleEl);
+        } else {
+            modal.setAttribute('aria-label', 'Feedback');
+        }
 
         if (config.showSentiment) {
             let upBtn: HTMLButtonElement;
@@ -205,9 +214,19 @@ export function createModal(config: WidgetConfig) {
         errorEl.id = 'ib-error';
         errorEl.className = 'ib-modal-error';
 
+        if (config.showTitleField === true) {
+            titleInputEl = document.createElement('input');
+            titleInputEl.id = 'ib-title-input';
+            titleInputEl.className = 'ib-modal-title-input';
+            titleInputEl.type = 'text';
+            titleInputEl.placeholder = 'Title (optional)';
+            titleInputEl.setAttribute('aria-label', 'Feedback title');
+            body.appendChild(titleInputEl);
+        }
+
         body.appendChild(textareaEl);
 
-        if (config.showEmailField !== false) {
+        if (config.showEmailField === true) {
             emailInputEl = document.createElement('input');
             emailInputEl.id = 'ib-email';
             emailInputEl.className = 'ib-modal-email';
@@ -219,7 +238,21 @@ export function createModal(config: WidgetConfig) {
 
         body.appendChild(errorEl);
         body.appendChild(successEl);
-        body.appendChild(submitBtnEl);
+
+        const footer = document.createElement('div');
+        footer.className = 'ib-modal-footer';
+        footer.appendChild(submitBtnEl);
+
+        const branding = document.createElement('div');
+        branding.className = 'ib-branding';
+        const brandingLink = document.createElement('a');
+        brandingLink.href = 'https://inputbuffer.io';
+        brandingLink.target = '_blank';
+        brandingLink.rel = 'noopener noreferrer';
+        brandingLink.textContent = 'Powered by inputbuffer.io';
+        branding.appendChild(brandingLink);
+        footer.appendChild(branding);
+        body.appendChild(footer);
 
         modal.appendChild(header);
         modal.appendChild(body);
@@ -239,7 +272,20 @@ export function createModal(config: WidgetConfig) {
         document.body.appendChild(overlay);
         applyTheme(config);
 
-        if (titleEl && options?.title) titleEl.textContent = options.title;
+        if (options?.title) {
+            if (titleEl) {
+                titleEl.textContent = options.title;
+            } else if (headerEl) {
+                const modalEl = overlay!.querySelector<HTMLElement>('#ib-modal')!;
+                modalEl.removeAttribute('aria-label');
+                modalEl.setAttribute('aria-labelledby', 'ib-title');
+                titleEl = document.createElement('h2');
+                titleEl.id = 'ib-title';
+                titleEl.className = 'ib-modal-title';
+                titleEl.textContent = options.title;
+                headerEl.prepend(titleEl);
+            }
+        }
 
         if (options?.sentiment) {
             currentSentiment = options.sentiment;
@@ -265,11 +311,13 @@ export function createModal(config: WidgetConfig) {
         overlay.remove();
         overlay = null;
         textareaEl = null;
+        titleInputEl = null;
         emailInputEl = null;
         submitBtnEl = null;
         errorEl = null;
         successEl = null;
         titleEl = null;
+        headerEl = null;
         currentOptions = undefined;
         currentSentiment = undefined;
         closeHandlers.forEach(h => h());

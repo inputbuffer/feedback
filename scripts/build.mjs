@@ -1,13 +1,18 @@
 import * as esbuild from 'esbuild';
 import { execSync } from 'child_process';
-import { readFileSync } from 'fs';
+import { readFileSync, rmSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(root, '..');
+const dist = join(repoRoot, 'dist');
 const isProd = process.env.NODE_ENV === 'production';
 const pkg = JSON.parse(readFileSync(join(repoRoot, 'package.json'), 'utf8'));
+
+console.info('[feedback] Cleaning dist directory...');
+rmSync(dist, { recursive: true, force: true });
+mkdirSync(dist, { recursive: true });
 
 console.info('[feedback] Building widget bundle...');
 
@@ -21,7 +26,6 @@ const shared = {
 
 const jsShared = {
     ...shared,
-    format: 'iife',
     target: ['es2019', 'chrome111', 'firefox113', 'safari16.2'],
     // CSS is embedded as a text string and injected as a <style> tag at runtime,
     // so widget styles apply synchronously before any elements are created.
@@ -30,12 +34,18 @@ const jsShared = {
 };
 
 const results = await Promise.all([
-    // Full bundle (modal + bar)
-    esbuild.build({ ...jsShared, entryPoints: [join(repoRoot, 'src/index.ts')], outfile: join(repoRoot, 'dist/widget.js') }),
-    // Modal-only bundle
-    esbuild.build({ ...jsShared, entryPoints: [join(repoRoot, 'src/modal-entry.ts')], outfile: join(repoRoot, 'dist/modal.js') }),
-    // Bar-only bundle
-    esbuild.build({ ...jsShared, entryPoints: [join(repoRoot, 'src/bar-entry.ts')], outfile: join(repoRoot, 'dist/bar.js') }),
+    // Full bundle (modal + bar) — IIFE for script-tag usage
+    esbuild.build({ ...jsShared, format: 'iife', entryPoints: [join(repoRoot, 'src/index.ts')], outfile: join(repoRoot, 'dist/widget.js') }),
+    // Modal-only bundle — IIFE
+    esbuild.build({ ...jsShared, format: 'iife', entryPoints: [join(repoRoot, 'src/modal-entry.ts')], outfile: join(repoRoot, 'dist/modal.js') }),
+    // Bar-only bundle — IIFE
+    esbuild.build({ ...jsShared, format: 'iife', entryPoints: [join(repoRoot, 'src/bar-entry.ts')], outfile: join(repoRoot, 'dist/bar.js') }),
+    // Full bundle — ESM for import usage
+    esbuild.build({ ...jsShared, format: 'esm', entryPoints: [join(repoRoot, 'src/index.ts')], outfile: join(repoRoot, 'dist/widget.esm.js') }),
+    // Modal-only — ESM
+    esbuild.build({ ...jsShared, format: 'esm', entryPoints: [join(repoRoot, 'src/modal-entry.ts')], outfile: join(repoRoot, 'dist/modal.esm.js') }),
+    // Bar-only — ESM
+    esbuild.build({ ...jsShared, format: 'esm', entryPoints: [join(repoRoot, 'src/bar-entry.ts')], outfile: join(repoRoot, 'dist/bar.esm.js') }),
     // Standalone CSS files (for users who load CSS manually instead of relying on JS injection)
     esbuild.build({ ...shared, entryPoints: [join(repoRoot, 'src/modal.css')], outfile: join(repoRoot, 'dist/modal.css') }),
     esbuild.build({ ...shared, entryPoints: [join(repoRoot, 'src/bar.css')], outfile: join(repoRoot, 'dist/bar.css') }),

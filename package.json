@@ -2,19 +2,23 @@
     "name": "@inputbuffer/feedback",
     "version": "0.1.0",
     "description": "Collect feedback from any website with a single script tag.",
+    "type": "module",
     "main": "dist/widget.js",
     "types": "dist/index.d.ts",
     "exports": {
         ".": {
             "types": "./dist/index.d.ts",
+            "import": "./dist/widget.esm.js",
             "default": "./dist/widget.js"
         },
         "./modal": {
             "types": "./dist/modal-entry.d.ts",
+            "import": "./dist/modal.esm.js",
             "default": "./dist/modal.js"
         },
         "./bar": {
             "types": "./dist/bar-entry.d.ts",
+            "import": "./dist/bar.esm.js",
             "default": "./dist/bar.js"
         }
     },

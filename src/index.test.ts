@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('./modal.js', () => ({
     createModal: vi.fn(() => ({
@@ -115,6 +115,40 @@ describe('InputBufferIO', () => {
             document.getElementById('ib-bar-styles')?.remove();
             InputBufferIO.createBar({ apiKey: 'key' });
             expect(document.getElementById('ib-bar-styles')).not.toBeNull();
+        });
+    });
+
+    describe('SSR guards', () => {
+        afterEach(() => {
+            vi.unstubAllGlobals();
+        });
+
+        it('createModal does not throw when document is undefined', () => {
+            vi.stubGlobal('document', undefined);
+            expect(() => InputBufferIO.createModal({ apiKey: 'k' })).not.toThrow();
+        });
+
+        it('createModal does not inject styles when document is undefined', () => {
+            document.getElementById('ib-modal-styles')?.remove();
+            vi.stubGlobal('document', undefined);
+            InputBufferIO.createModal({ apiKey: 'k' });
+            vi.unstubAllGlobals();
+            expect(document.getElementById('ib-modal-styles')).toBeNull();
+        });
+
+        it('createBar does not throw when document is undefined', () => {
+            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), destroy: vi.fn() });
+            vi.stubGlobal('document', undefined);
+            expect(() => InputBufferIO.createBar({ apiKey: 'k' })).not.toThrow();
+        });
+
+        it('createBar does not inject styles when document is undefined', () => {
+            document.getElementById('ib-bar-styles')?.remove();
+            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), destroy: vi.fn() });
+            vi.stubGlobal('document', undefined);
+            InputBufferIO.createBar({ apiKey: 'k' });
+            vi.unstubAllGlobals();
+            expect(document.getElementById('ib-bar-styles')).toBeNull();
         });
     });
 

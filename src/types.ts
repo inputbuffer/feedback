@@ -1,7 +1,39 @@
-export interface TargetSpec {
-    type: 'documentation' | 'rest_endpoint' | 'cli_command';
-    metadata?: Record<string, string>;
+interface BaseTargetSpec {
+    targetId?: string;
+    displayName?: string;
+    dedupKey?: string;
 }
+
+export interface RestEndpointTarget extends BaseTargetSpec {
+    type: 'rest_endpoint';
+    metadata?: {
+        method?: string;
+        path?: string;
+        host?: string;
+        api_version?: string;
+    };
+}
+
+export interface DocumentationTarget extends BaseTargetSpec {
+    type: 'documentation';
+    metadata?: {
+        page_url?: string;
+        page_slug?: string;
+        section_heading?: string;
+        doc_version?: string;
+    };
+}
+
+export interface CliCommandTarget extends BaseTargetSpec {
+    type: 'cli_command';
+    metadata?: {
+        command?: string;
+        subcommand?: string;
+        cli_version?: string;
+    };
+}
+
+export type TargetSpec = RestEndpointTarget | DocumentationTarget | CliCommandTarget;
 
 export interface OpenOptions {
     target?: TargetSpec;
@@ -11,6 +43,7 @@ export interface OpenOptions {
     };
     title?: string;
     sentiment?: 'positive' | 'negative';
+    source?: string;
 }
 
 export interface FeedbackBarConfig {
@@ -21,10 +54,13 @@ export interface FeedbackBarConfig {
     placement?: 'fixed' | 'inline';
     colorScheme?: 'dark' | 'light' | 'auto';
     theme?: WidgetConfig['theme'];
+    target?: TargetSpec;
     modalTitle?: string;
     modalPlaceholder?: string;
     showEmailField?: boolean;
+    showTitleField?: boolean;
     injectStyles?: boolean;
+    source?: string;
 }
 
 export interface FeedbackBarInstance {
@@ -53,7 +89,9 @@ export interface WidgetConfig {
     title?: string;
     placeholder?: string;
     showEmailField?: boolean;
+    showTitleField?: boolean;
     showSentiment?: boolean;
+    source?: string;
 }
 
 export interface WidgetInstance {

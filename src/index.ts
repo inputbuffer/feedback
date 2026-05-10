@@ -6,9 +6,13 @@ import modalCssText from './modal.css';
 import barCssText from './bar.css';
 
 // Capture currentScript synchronously — only valid at script load time.
-const _currentScript = document.currentScript as HTMLScriptElement | null;
+// Guard required for SSR environments where document is not defined.
+const _currentScript = typeof document !== 'undefined'
+    ? document.currentScript as HTMLScriptElement | null
+    : null;
 
 function injectModalStyles(): void {
+    if (typeof document === 'undefined') return;
     if (document.getElementById('ib-modal-styles')) return;
     const style = document.createElement('style');
     style.id = 'ib-modal-styles';
@@ -17,6 +21,7 @@ function injectModalStyles(): void {
 }
 
 function injectBarStyles(): void {
+    if (typeof document === 'undefined') return;
     if (document.getElementById('ib-bar-styles')) return;
     const style = document.createElement('style');
     style.id = 'ib-bar-styles';
@@ -59,50 +64,55 @@ function createBar(config: FeedbackBarConfig): FeedbackBarInstance {
     return createFeedbackBar(config);
 }
 
-class InputBufferIOFeedbackElement extends HTMLElement {
-    private _bar: FeedbackBarInstance | null = null;
+if (typeof HTMLElement !== 'undefined') {
+    class InputBufferIOFeedbackElement extends HTMLElement {
+        private _bar: FeedbackBarInstance | null = null;
 
-    connectedCallback() {
-        const apiKey = this.getAttribute('api-key');
-        if (!apiKey) return;
+        connectedCallback() {
+            const apiKey = this.getAttribute('api-key');
+            if (!apiKey) return;
 
-        const injectStylesAttr = this.getAttribute('inject-styles');
-        const shouldInject = injectStylesAttr === null ? true : injectStylesAttr !== 'false';
-        if (shouldInject) injectBarStyles();
+            const injectStylesAttr = this.getAttribute('inject-styles');
+            const shouldInject = injectStylesAttr === null ? true : injectStylesAttr !== 'false';
+            if (shouldInject) injectBarStyles();
 
-        const placement = this.getAttribute('placement');
-        this._bar = createFeedbackBar({
-            apiKey,
-            apiUrl: this.getAttribute('api-url') ?? undefined,
-            label: this.getAttribute('label') ?? undefined,
-            placement: placement === 'fixed' ? 'fixed' : 'inline',
-            theme: {
-                primary: this.getAttribute('theme-primary') ?? undefined,
-                background: this.getAttribute('theme-background') ?? undefined,
-                text: this.getAttribute('theme-text') ?? undefined,
-                selected: this.getAttribute('theme-selected') ?? undefined,
-                selectedColor: this.getAttribute('theme-selected-color') ?? undefined,
-            },
-        });
-        this.appendChild(this._bar.element);
+            const placement = this.getAttribute('placement');
+            this._bar = createFeedbackBar({
+                apiKey,
+                apiUrl: this.getAttribute('api-url') ?? undefined,
+                label: this.getAttribute('label') ?? undefined,
+                placement: placement === 'fixed' ? 'fixed' : 'inline',
+                theme: {
+                    primary: this.getAttribute('theme-primary') ?? undefined,
+                    background: this.getAttribute('theme-background') ?? undefined,
+                    text: this.getAttribute('theme-text') ?? undefined,
+                    selected: this.getAttribute('theme-selected') ?? undefined,
+                    selectedColor: this.getAttribute('theme-selected-color') ?? undefined,
+                },
+            });
+            this.appendChild(this._bar.element);
+        }
+
+        disconnectedCallback() {
+            this._bar?.destroy();
+            this._bar = null;
+        }
     }
 
-    disconnectedCallback() {
-        this._bar?.destroy();
-        this._bar = null;
+    if (typeof customElements !== 'undefined' && !customElements.get('inputbuffer-feedback')) {
+        customElements.define('inputbuffer-feedback', InputBufferIOFeedbackElement);
     }
-}
-
-if (!customElements.get('inputbuffer-feedback')) {
-    customElements.define('inputbuffer-feedback', InputBufferIOFeedbackElement);
 }
 
 // Expose on window
 const InputBufferIO = { createModal, createBar, version: WIDGET_VERSION };
-(window as unknown as Record<string, unknown>)['InputBufferIO'] = InputBufferIO;
+if (typeof window !== 'undefined') {
+    (window as unknown as Record<string, unknown>)['InputBufferIO'] = InputBufferIO;
+}
 
 // Auto-init when data-api-key is present on the script tag
 (function autoInit() {
+    if (typeof window === 'undefined') return;
     const apiKey = _currentScript?.dataset.apiKey;
     if (!apiKey) return;
 

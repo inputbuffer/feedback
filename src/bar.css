@@ -108,7 +108,8 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }
 
-.ib-bar-email {
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input,
+.ib-bar-wrapper .ib-bar-body .ib-bar-email {
     width: 100%;
     background: var(--ib-background);
     border: 1px solid var(--ib-border);
@@ -118,16 +119,25 @@
     font-family: inherit;
     color: var(--ib-text);
     box-sizing: border-box;
-    margin-top: 8px;
     outline: none;
     display: block;
 }
 
-.ib-bar-email:hover {
+.ib-bar-title-input {
+    margin-bottom: 8px;
+}
+
+.ib-bar-email {
+    margin-top: 8px;
+}
+
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:hover,
+.ib-bar-wrapper .ib-bar-body .ib-bar-email:hover {
     border-color: var(--ib-input-hover-border);
 }
 
-.ib-bar-email:focus {
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:focus,
+.ib-bar-wrapper .ib-bar-body .ib-bar-email:focus {
     border-color: var(--ib-focus-color);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }
@@ -144,7 +154,6 @@
     letter-spacing: 0.08em;
     font-family: inherit;
     cursor: pointer;
-    margin-top: 10px;
     display: inline-block;
     transition: background 0.15s;
 }
@@ -158,24 +167,45 @@
     cursor: not-allowed;
 }
 
-.ib-bar-error {
-    color: #dc2626;
+.ib-bar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+.ib-branding a {
+    font-size: 10px;
+    color: var(--ib-muted);
+    text-decoration: none;
+    letter-spacing: 0.03em;
+}
+
+.ib-branding a:hover {
+    color: var(--ib-primary);
+    text-decoration: underline;
+}
+
+.ib-bar-error,
+.ib-bar-success {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin: 8px 0 0;
-    min-height: 0;
+}
+
+.ib-bar-error:empty,
+.ib-bar-success:empty {
+    display: none;
+}
+
+.ib-bar-error {
+    color: #dc2626;
 }
 
 .ib-bar-success {
     color: #16a34a;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 8px 0 0;
-    min-height: 0;
 }
 
 .ib-bar-label-area {
@@ -192,6 +222,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     white-space: nowrap;
+    user-select: none;
 }
 
 .ib-bar-actions {

@@ -85,21 +85,26 @@ describe('createModal', () => {
     });
 
     describe('DOM structure', () => {
-        it('renders overlay, modal, title, textarea, email, submit, success, error elements', () => {
+        it('renders overlay, modal, textarea, submit, success, error elements', () => {
             createModal({ apiKey: 'key' }).open();
             expect(document.getElementById('ib-overlay')).not.toBeNull();
             expect(document.getElementById('ib-modal')).not.toBeNull();
-            expect(document.getElementById('ib-title')).not.toBeNull();
             expect(document.getElementById('ib-textarea')).not.toBeNull();
-            expect(document.getElementById('ib-email')).not.toBeNull();
+            expect(document.getElementById('ib-email')).toBeNull();
             expect(document.getElementById('ib-submit')).not.toBeNull();
             expect(document.getElementById('ib-success')).not.toBeNull();
             expect(document.getElementById('ib-error')).not.toBeNull();
         });
 
-        it('uses the default title when none is configured', () => {
+        it('renders title element when config.title is provided', () => {
+            createModal({ apiKey: 'key', title: 'My Title' }).open();
+            expect(document.getElementById('ib-title')).not.toBeNull();
+        });
+
+        it('renders no title element when none is configured', () => {
             createModal({ apiKey: 'key' }).open();
-            expect(document.getElementById('ib-title')!.textContent).toBe('Share your feedback');
+            expect(document.getElementById('ib-title')).toBeNull();
+            expect(document.getElementById('ib-modal')!.getAttribute('aria-label')).toBe('Feedback');
         });
 
         it('uses config.title', () => {
@@ -117,9 +122,14 @@ describe('createModal', () => {
             expect((document.getElementById('ib-textarea') as HTMLTextAreaElement).placeholder).toBe("What's on your mind?");
         });
 
-        it('hides the email field when showEmailField is false', () => {
-            createModal({ apiKey: 'key', showEmailField: false }).open();
+        it('hides the email field by default', () => {
+            createModal({ apiKey: 'key' }).open();
             expect(document.getElementById('ib-email')).toBeNull();
+        });
+
+        it('shows the email field when showEmailField is true', () => {
+            createModal({ apiKey: 'key', showEmailField: true }).open();
+            expect(document.getElementById('ib-email')).not.toBeNull();
         });
 
         it('modal has role=dialog and aria-modal', () => {
@@ -167,7 +177,7 @@ describe('createModal', () => {
             (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
-            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ sentiment: 'positive' });
+            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toMatchObject({ sentiment: 'positive' });
         });
     });
 
@@ -178,6 +188,13 @@ describe('createModal', () => {
             expect(document.getElementById('ib-title')!.textContent).toBe('Runtime Title');
         });
 
+        it('creates title element from open options when no config title', () => {
+            const modal = createModal({ apiKey: 'key' });
+            modal.open({ title: 'Runtime Title' });
+            expect(document.getElementById('ib-title')!.textContent).toBe('Runtime Title');
+            expect(document.getElementById('ib-modal')!.getAttribute('aria-labelledby')).toBe('ib-title');
+        });
+
         it('prefills textarea with description', () => {
             const modal = createModal({ apiKey: 'key' });
             modal.open({ prefill: { description: 'Prefilled feedback text' } });
@@ -185,7 +202,7 @@ describe('createModal', () => {
         });
 
         it('prefills email input', () => {
-            const modal = createModal({ apiKey: 'key' });
+            const modal = createModal({ apiKey: 'key', showEmailField: true });
             modal.open({ prefill: { email: 'user@example.com' } });
             expect((document.getElementById('ib-email') as HTMLInputElement).value).toBe('user@example.com');
         });
@@ -231,19 +248,19 @@ describe('createModal', () => {
     describe('submission success', () => {
         it('calls submitFeedback with apiKey, description, and email', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            createModal({ apiKey: 'my-key' }).open();
+            createModal({ apiKey: 'my-key', showEmailField: true }).open();
 
             (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             (document.getElementById('ib-email') as HTMLInputElement).value = 'a@b.com';
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
 
-            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', 'a@b.com', expect.objectContaining({ sentiment: undefined }), undefined);
+            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', 'a@b.com', null, expect.objectContaining({ sentiment: undefined }), undefined);
         });
 
         it('uses prefill email when input is empty', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            createModal({ apiKey: 'key' }).open({ prefill: { email: 'prefill@example.com' } });
+            createModal({ apiKey: 'key', showEmailField: true }).open({ prefill: { email: 'prefill@example.com' } });
 
             // Clear the email input that was prefilled
             (document.getElementById('ib-email') as HTMLInputElement).value = '';
@@ -262,7 +279,7 @@ describe('createModal', () => {
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
 
-            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toBe('http://localhost:3000/api/widget/inputs');
+            expect(vi.mocked(submitFeedback).mock.calls[0][5]).toBe('http://localhost:3000/api/widget/inputs');
         });
 
         it('passes target option to submitFeedback', async () => {
@@ -273,7 +290,7 @@ describe('createModal', () => {
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
 
-            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ target: { type: 'documentation' } });
+            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toMatchObject({ target: { type: 'documentation' } });
         });
 
         it('shows success message', async () => {

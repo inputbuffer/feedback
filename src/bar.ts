@@ -80,16 +80,19 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
     popover.className = 'ib-bar-popover';
     popover.setAttribute('role', 'dialog');
     popover.setAttribute('aria-modal', 'false');
-    popover.setAttribute('aria-labelledby', 'ib-bar-title');
-
     const popoverHeader = document.createElement('div');
     popoverHeader.className = 'ib-bar-header';
 
-    const popoverTitle = document.createElement('p');
-    popoverTitle.id = 'ib-bar-title';
-    popoverTitle.className = 'ib-bar-title';
-    popoverTitle.textContent = config.modalTitle ?? 'Share your feedback';
-    popoverHeader.appendChild(popoverTitle);
+    if (config.modalTitle) {
+        popover.setAttribute('aria-labelledby', 'ib-bar-title');
+        const popoverTitle = document.createElement('p');
+        popoverTitle.id = 'ib-bar-title';
+        popoverTitle.className = 'ib-bar-title';
+        popoverTitle.textContent = config.modalTitle;
+        popoverHeader.appendChild(popoverTitle);
+    } else {
+        popover.setAttribute('aria-label', 'Feedback');
+    }
 
     const popoverBody = document.createElement('div');
     popoverBody.className = 'ib-bar-body';
@@ -110,9 +113,18 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
     submitBtn.className = 'ib-bar-submit';
     submitBtn.textContent = 'Send feedback';
 
+    if (config.showTitleField === true) {
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.className = 'ib-bar-title-input';
+        titleInput.placeholder = 'Title (optional)';
+        titleInput.setAttribute('aria-label', 'Feedback title');
+        popoverBody.appendChild(titleInput);
+    }
+
     popoverBody.appendChild(textarea);
 
-    if (config.showEmailField !== false) {
+    if (config.showEmailField === true) {
         const emailInput = document.createElement('input');
         emailInput.type = 'email';
         emailInput.className = 'ib-bar-email';
@@ -123,7 +135,21 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
 
     popoverBody.appendChild(errorEl);
     popoverBody.appendChild(successEl);
-    popoverBody.appendChild(submitBtn);
+
+    const footer = document.createElement('div');
+    footer.className = 'ib-bar-footer';
+    footer.appendChild(submitBtn);
+
+    const branding = document.createElement('div');
+    branding.className = 'ib-branding';
+    const brandingLink = document.createElement('a');
+    brandingLink.href = 'https://inputbuffer.io';
+    brandingLink.target = '_blank';
+    brandingLink.rel = 'noopener noreferrer';
+    brandingLink.textContent = 'Powered by inputbuffer.io';
+    branding.appendChild(brandingLink);
+    footer.appendChild(branding);
+    popoverBody.appendChild(footer);
 
     popover.appendChild(popoverHeader);
     popover.appendChild(popoverBody);
@@ -177,11 +203,17 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
         submitBtn.disabled = true;
         submitBtn.textContent = 'Sending…';
 
+        const titleInput = popover.querySelector<HTMLInputElement>('.ib-bar-title-input');
+        const title = titleInput?.value.trim() || null;
         const emailInput = popover.querySelector<HTMLInputElement>('.ib-bar-email');
         const email = emailInput?.value.trim() || null;
 
         try {
-            const result = await submitFeedback(config.apiKey, description, email, { sentiment: currentSentiment }, config.apiUrl);
+            const result = await submitFeedback(
+                config.apiKey, description, email, title,
+                { sentiment: currentSentiment, target: config.target, source: config.source },
+                config.apiUrl
+            );
             emit('submit', result);
             successEl.textContent = 'Thanks for your feedback!';
             submitBtn.textContent = 'Send feedback';

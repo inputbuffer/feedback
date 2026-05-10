@@ -4,6 +4,7 @@ import { WIDGET_VERSION } from './api.js';
 import cssText from './bar.css';
 
 function injectStyles(): void {
+    if (typeof document === 'undefined') return;
     if (document.getElementById('ib-bar-styles')) return;
     const style = document.createElement('style');
     style.id = 'ib-bar-styles';
@@ -50,13 +51,15 @@ class InputBufferIOFeedbackElement extends HTMLElement {
     }
 }
 
-if (!customElements.get('inputbuffer-feedback')) {
+if (typeof customElements !== 'undefined' && !customElements.get('inputbuffer-feedback')) {
     customElements.define('inputbuffer-feedback', InputBufferIOFeedbackElement);
 }
 
 // Expose on window
 const InputBufferIO = { createBar, version: WIDGET_VERSION };
-(window as unknown as Record<string, unknown>)['InputBufferIO'] = InputBufferIO;
+if (typeof window !== 'undefined') {
+    (window as unknown as Record<string, unknown>)['InputBufferIO'] = InputBufferIO;
+}
 
 export type { FeedbackBarConfig, FeedbackBarInstance };
 export { InputBufferIO, createBar };

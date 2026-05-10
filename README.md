@@ -33,6 +33,7 @@ This package is a lightweight embeddable widget you can drop into your documenta
   - [`instance.destroy()`](#instancedestroy)
   - [`instance.on(event, handler)`](#instanceonevent-handler)
   - [`InputBufferIO.version`](#inputbufferioversion)
+- [Target metadata schemas](#target-metadata-schemas)
 - [CSS customization](#css-customization)
   - [Modal selectors](#modal-selectors)
   - [Bar selectors](#bar-selectors)
@@ -236,7 +237,7 @@ Supported attributes:
 | `theme-selected-color` | Icon color of the selected thumb. |
 | `inject-styles` | Set to `"false"` to skip automatic style injection. |
 
-> **Note:** `colorScheme`, `showLabel`, `modalTitle`, `modalPlaceholder`, and `showEmailField` are not available as web component attributes. Use `InputBufferIO.createBar(config)` for those options.
+> **Note:** `colorScheme`, `showLabel`, `modalTitle`, `modalPlaceholder`, `showTitleField`, `showEmailField`, and `source` are not available as web component attributes. Use `InputBufferIO.createBar(config)` for those options.
 
 ### `InputBufferIO.createBar(config)`
 
@@ -264,9 +265,16 @@ document.getElementById('my-slot').appendChild(bar.element);
 | `theme.text` | string | — | Text color. |
 | `theme.selected` | string | — | Background color of the selected thumb. |
 | `theme.selectedColor` | string | — | Icon color of the selected thumb. |
+| `target.type` | `'documentation'` \| `'rest_endpoint'` \| `'cli_command'` | — | The kind of thing the user is giving feedback on. Used for AI categorization. |
+| `target.targetId` | string | — | Optional stable ID for this target (used for deduplication on the server). |
+| `target.displayName` | string | — | Human-readable name shown in the InputBuffer dashboard (max 500 chars). |
+| `target.dedupKey` | string | — | Custom deduplication key (max 500 chars). |
+| `target.metadata` | object | — | Type-specific fields — see [Target metadata schemas](#target-metadata-schemas). |
 | `modalTitle` | string | — | Heading for the follow-up popover. |
 | `modalPlaceholder` | string | — | Textarea placeholder for the follow-up popover. |
-| `showEmailField` | boolean | `true` | Show/hide the email field in the follow-up popover. |
+| `showEmailField` | boolean | `false` | Show/hide the email field in the follow-up popover. |
+| `showTitleField` | boolean | `false` | Show/hide the title field in the follow-up popover. |
+| `source` | string | — | Tag identifying which of your surfaces this widget is embedded on (e.g. `"ios-app"`, `"docs-site"`). Stored on every submission for filtering in the dashboard. |
 | `injectStyles` | boolean | `true` | Set to `false` to skip automatic style injection. |
 
 ### `bar.on(event, handler)`
@@ -334,10 +342,12 @@ const ib = InputBufferIO.createModal({
 | `apiUrl` | string | — | Override the API endpoint (useful for local dev/testing). |
 | `attachTo` | string | — | CSS selector. Clicking the matched element calls `open()`. |
 | `injectStyles` | boolean | `true` | Set to `false` to skip automatic style injection. |
-| `title` | string | `'Share your feedback'` | Default modal heading. |
+| `title` | string | — | Modal heading. Omit to render no title. |
 | `placeholder` | string | `"What's on your mind?"` | Textarea placeholder text. |
-| `showEmailField` | boolean | `true` | Set to `false` to hide the optional email field. |
+| `showEmailField` | boolean | `false` | Set to `true` to show an optional email field. |
+| `showTitleField` | boolean | `false` | Set to `true` to show an optional title field. |
 | `showSentiment` | boolean | `false` | Show thumbs up/down sentiment buttons in the modal. |
+| `source` | string | — | Tag identifying which of your surfaces this widget is embedded on (e.g. `"ios-app"`, `"docs-site"`). Stored on every submission for filtering in the dashboard. |
 | `colorScheme` | `'light'` \| `'dark'` \| `'auto'` | `'auto'` | Force a color scheme or follow the system setting. |
 | `theme.primary` | string | — | Primary color (buttons, focus rings). |
 | `theme.background` | string | — | Modal background color. |
@@ -355,6 +365,8 @@ ib.open({
     title: 'Was this helpful?',
     target: {
         type: 'documentation',
+        targetId: 'auth-overview',
+        displayName: 'Authentication overview',
         metadata: {
             page_url: window.location.href,
             section_heading: 'Authentication',
@@ -370,10 +382,14 @@ ib.open({
 |---|---|---|
 | `title` | string | Overrides the modal heading for this open call. |
 | `sentiment` | `'positive'` \| `'negative'` | Pre-selects a sentiment thumb. Only relevant when `showSentiment` is enabled. |
-| `target.type` | `'documentation'` \| `'rest_endpoint'` \| `'cli_command'` | What kind of thing the user is giving feedback on. Stored with the feedback record and used for AI categorization. |
-| `target.metadata` | `Record<string, string>` | Arbitrary key/value pairs attached to this feedback. Keys and values must be strings. Use for `page_url`, `endpoint`, `command`, or any other context. |
+| `target.type` | `'documentation'` \| `'rest_endpoint'` \| `'cli_command'` | The kind of thing the user is giving feedback on. Used for AI categorization. |
+| `target.targetId` | string | Optional stable ID for this target (used for deduplication on the server). |
+| `target.displayName` | string | Human-readable name shown in the InputBuffer dashboard (max 500 chars). |
+| `target.dedupKey` | string | Custom deduplication key (max 500 chars). |
+| `target.metadata` | object | Type-specific fields — see [Target metadata schemas](#target-metadata-schemas). |
 | `prefill.email` | string | Pre-populates the email field. |
 | `prefill.description` | string | Pre-populates the textarea. |
+| `source` | string | Overrides the `source` set in `createModal(config)` for this open call. |
 
 ### `instance.close()`
 
@@ -407,6 +423,38 @@ The currently loaded widget version string.
 console.log(InputBufferIO.version); // e.g. "0.1.0"
 ```
 
+### Target metadata schemas
+
+The fields accepted in `target.metadata` depend on `target.type`. The server validates required fields; the client does not enforce them.
+
+**`documentation`**
+
+| Field | Required | Description |
+|---|---|---|
+| `page_url` | No | Full URL of the page. |
+| `page_slug` | No | Slug or path of the page. |
+| `section_heading` | No | Heading of the section the user is viewing. |
+| `doc_version` | No | Documentation version string. |
+
+**`rest_endpoint`**
+
+| Field | Required | Description |
+|---|---|---|
+| `method` | Yes* | HTTP method (`GET`, `POST`, etc.). |
+| `path` | Yes* | API path (e.g. `/v1/users`). |
+| `host` | No | Hostname (e.g. `api.example.com`). |
+| `api_version` | No | API version string. |
+
+**`cli_command`**
+
+| Field | Required | Description |
+|---|---|---|
+| `command` | Yes* | Top-level CLI command (e.g. `auth`). |
+| `subcommand` | No | Subcommand (e.g. `setup`). |
+| `cli_version` | No | CLI version string. |
+
+\* Required by the server; omitting them will result in a validation error response.
+
 ---
 
 ## CSS customization
@@ -439,15 +487,15 @@ The IDs are the stable public API and will not change between releases. The `.ib
 | `.ib-bar` | The visible bar strip |
 | `.ib-bar-label` | Label text |
 | `.ib-bar-btn` | Thumb buttons |
-| `.ib-popover` | Follow-up popover container |
-| `.ib-popover-header` | Popover header |
-| `.ib-popover-body` | Popover body |
-| `.ib-popover-title` | Popover heading |
-| `.ib-popover-textarea` | Feedback text field |
-| `.ib-popover-email` | Email input |
-| `.ib-popover-submit` | Submit button |
-| `.ib-popover-success` | Success message |
-| `.ib-popover-error` | Error message |
+| `.ib-bar-popover` | Follow-up popover container |
+| `.ib-bar-header` | Popover header |
+| `.ib-bar-body` | Popover body |
+| `.ib-bar-title` | Popover heading |
+| `.ib-bar-textarea` | Feedback text field |
+| `.ib-bar-email` | Email input |
+| `.ib-bar-submit` | Submit button |
+| `.ib-bar-success` | Success message |
+| `.ib-bar-error` | Error message |
 
 ### CSS custom properties
 
@@ -482,6 +530,8 @@ document.getElementById('feedback-btn').addEventListener('click', () => {
         title: 'Was this page helpful?',
         target: {
             type: 'documentation',
+            targetId: window.location.pathname,
+            displayName: document.title,
             metadata: {
                 page_url: window.location.href,
                 section_heading: document.querySelector('h1')?.textContent ?? '',
@@ -500,6 +550,8 @@ const ib = InputBufferIO.createModal({ apiKey: 'YOUR_WIDGET_TOKEN' });
 ib.open({
     target: {
         type: 'rest_endpoint',
+        targetId: 'POST /v1/uploads',
+        displayName: 'Upload a file',
         metadata: { method: 'POST', path: '/v1/uploads' },
     },
 });
@@ -514,7 +566,9 @@ const ib = InputBufferIO.createModal({ apiKey: 'YOUR_WIDGET_TOKEN' });
 ib.open({
     target: {
         type: 'cli_command',
-        metadata: { command: 'my-cli deploy --env production' },
+        targetId: 'deploy',
+        displayName: 'my-cli deploy',
+        metadata: { command: 'deploy' },
     },
 });
 ```
