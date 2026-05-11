@@ -1,6 +1,6 @@
 {
     "name": "@inputbuffer/feedback",
-    "version": "0.1.0",
+    "version": "0.1.1",
     "description": "Collect feedback from any website with a single script tag.",
     "type": "module",
     "main": "dist/widget.js",
@@ -52,5 +52,8 @@
         "type": "git",
         "url": "https://github.com/inputbuffer/feedback"
     },
-    "homepage": "https://inputbuffer.io"
+    "homepage": "https://inputbuffer.io",
+    "publishConfig": {
+        "access": "public"
+    }
 }

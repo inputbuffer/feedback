@@ -46,9 +46,7 @@
 
 .ib-bar-popover {
     display: none;
-    position: absolute;
-    bottom: calc(100% + 8px);
-    right: 0;
+    position: fixed;
     width: 320px;
 
     border: 1px solid var(--ib-border);

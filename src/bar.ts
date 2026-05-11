@@ -157,15 +157,25 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
     wrapper.appendChild(popover);
     wrapper.appendChild(bar);
 
+    function positionPopover() {
+        const rect = bar.getBoundingClientRect();
+        popover.style.top = `${rect.top - popover.offsetHeight - 8}px`;
+        popover.style.left = `${rect.right - 320}px`;
+    }
+
     // Popover open/close
     function openPopover(sentiment: 'positive' | 'negative') {
         currentSentiment = sentiment;
         popover.classList.add('ib-bar-popover--visible');
+        // Position after display:block takes effect so offsetHeight is accurate
+        requestAnimationFrame(positionPopover);
         errorEl.textContent = '';
         successEl.textContent = '';
         textarea.focus();
         setTimeout(() => document.addEventListener('click', handleOutsideClick), 0);
         document.addEventListener('keydown', handleKeydown);
+        window.addEventListener('scroll', positionPopover, { passive: true });
+        window.addEventListener('resize', positionPopover, { passive: true });
         emit('open', { sentiment });
     }
 
@@ -174,6 +184,8 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
         popover.classList.remove('ib-bar-popover--visible');
         document.removeEventListener('click', handleOutsideClick);
         document.removeEventListener('keydown', handleKeydown);
+        window.removeEventListener('scroll', positionPopover);
+        window.removeEventListener('resize', positionPopover);
         textarea.value = '';
         emit('close');
     }

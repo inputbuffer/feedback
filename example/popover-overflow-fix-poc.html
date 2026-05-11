@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Popover Overflow Fix — PoC</title>
+<style>
+    body { font-family: sans-serif; padding: 40px; background: #1a1a1a; color: #e5e7eb; }
+    h2 { margin-top: 40px; font-size: 14px; text-transform: uppercase; letter-spacing: 0.1em; color: #9ca3af; }
+    .demo-container {
+        background: #252826;
+        border: 1px solid #363840;
+        border-radius: 8px;
+        padding: 24px;
+        /* overflow:hidden is what causes the clipping bug */
+        overflow: hidden;
+        position: relative;
+    }
+    .note {
+        font-size: 12px;
+        color: #9ca3af;
+        margin-bottom: 16px;
+        border-left: 3px solid #4E6857;
+        padding-left: 10px;
+    }
+    .slot { display: flex; justify-content: flex-end; }
+</style>
+</head>
+<body>
+
+<h1 style="font-size:20px;margin-bottom:4px">Popover overflow:hidden escape — PoC</h1>
+<p style="color:#9ca3af;font-size:13px;margin-top:0">
+    The outer container has <code style="background:#2c3630;padding:2px 6px;border-radius:4px">overflow: hidden</code>.
+    Click a thumb — the popover should appear fully unclipped above the bar.
+</p>
+
+<h2>Demo</h2>
+<div class="demo-container">
+    <p class="note">
+        This box has <strong>overflow: hidden</strong>. Before the fix, the popover was clipped here.<br>
+        With <code>position: fixed</code> + JS-computed coordinates in <code>positionPopover()</code> (<a href="../src/bar.ts" style="color:#7B9B82">src/bar.ts</a>), it escapes the clipping context.
+    </p>
+    <div class="slot" id="bar-slot"></div>
+</div>
+
+<script src="../dist/bar.js"></script>
+<script>
+    const bar = InputBufferIO.createBar({
+        apiKey: 'demo',
+        label: 'Was this guide helpful?',
+        placement: 'inline',
+        colorScheme: 'dark',
+        theme: {
+            primary: '#3A5244',
+            background: '#25272B',
+            surface: '#2C3630',
+            text: '#E5E7EB',
+            selected: '#7B9B82',
+            selectedColor: '#1a2420',
+        },
+    });
+    document.getElementById('bar-slot').appendChild(bar.element);
+</script>
+
+</body>
+</html>
