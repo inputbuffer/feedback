@@ -1,0 +1,1 @@
+1. investigate thumbsup/down single icon, mouseover expand to both clickable options.

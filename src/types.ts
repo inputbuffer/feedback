@@ -1,7 +1,6 @@
 interface BaseTargetSpec {
     targetId?: string;
     displayName?: string;
-    dedupKey?: string;
 }
 
 export interface RestEndpointTarget extends BaseTargetSpec {
@@ -9,8 +8,8 @@ export interface RestEndpointTarget extends BaseTargetSpec {
     metadata?: {
         method?: string;
         path?: string;
-        host?: string;
-        api_version?: string;
+        host: string;
+        api_version: string;
     };
 }
 
@@ -61,6 +60,7 @@ export interface FeedbackBarConfig {
     showTitleField?: boolean;
     injectStyles?: boolean;
     source?: string;
+    userId?: string;
 }
 
 export interface FeedbackBarInstance {

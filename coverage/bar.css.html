@@ -356,7 +356,63 @@
 <a name='L291'></a><a href='#L291'>291</a>
 <a name='L292'></a><a href='#L292'>292</a>
 <a name='L293'></a><a href='#L293'>293</a>
-<a name='L294'></a><a href='#L294'>294</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -689,7 +745,6 @@
     overflow: hidden;
 &nbsp;
     background-color: var(--ib-background);
-    background-image: url("data:image/svg+xml,%3Csvg width='20' height='20' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M 20 0 L 0 0 0 20' fill='none' stroke='%238d99ae' stroke-width='0.5' stroke-opacity='0.3'/%3E%3C/svg%3E");
     border: 1px solid var(--ib-border);
     border-radius: 2px;
     box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
@@ -698,9 +753,7 @@
 &nbsp;
 .ib-bar-popover {
     display: none;
-    position: absolute;
-    bottom: calc(100% + 8px);
-    right: 0;
+    position: fixed;
     width: 320px;
 &nbsp;
     border: 1px solid var(--ib-border);
@@ -760,7 +813,8 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }
 &nbsp;
-.ib-bar-email {
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input,
+.ib-bar-wrapper .ib-bar-body .ib-bar-email {
     width: 100%;
     background: var(--ib-background);
     border: 1px solid var(--ib-border);
@@ -770,16 +824,25 @@
     font-family: inherit;
     color: var(--ib-text);
     box-sizing: border-box;
-    margin-top: 8px;
     outline: none;
     display: block;
 }
 &nbsp;
-.ib-bar-email:hover {
+.ib-bar-title-input {
+    margin-bottom: 8px;
+}
+&nbsp;
+.ib-bar-email {
+    margin-top: 8px;
+}
+&nbsp;
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:hover,
+.ib-bar-wrapper .ib-bar-body .ib-bar-email:hover {
     border-color: var(--ib-input-hover-border);
 }
 &nbsp;
-.ib-bar-email:focus {
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:focus,
+.ib-bar-wrapper .ib-bar-body .ib-bar-email:focus {
     border-color: var(--ib-focus-color);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }
@@ -796,7 +859,6 @@
     letter-spacing: 0.08em;
     font-family: inherit;
     cursor: pointer;
-    margin-top: 10px;
     display: inline-block;
     transition: background 0.15s;
 }
@@ -810,24 +872,45 @@
     cursor: not-allowed;
 }
 &nbsp;
-.ib-bar-error {
-    color: #dc2626;
+.ib-bar-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+&nbsp;
+.ib-branding a {
+    font-size: 10px;
+    color: var(--ib-muted);
+    text-decoration: none;
+    letter-spacing: 0.03em;
+}
+&nbsp;
+.ib-branding a:hover {
+    color: var(--ib-primary);
+    text-decoration: underline;
+}
+&nbsp;
+.ib-bar-error,
+.ib-bar-success {
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     margin: 8px 0 0;
-    min-height: 0;
+}
+&nbsp;
+.ib-bar-error:empty,
+.ib-bar-success:empty {
+    display: none;
+}
+&nbsp;
+.ib-bar-error {
+    color: #dc2626;
 }
 &nbsp;
 .ib-bar-success {
     color: #16a34a;
-    font-size: 11px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    margin: 8px 0 0;
-    min-height: 0;
 }
 &nbsp;
 .ib-bar-label-area {
@@ -844,6 +927,7 @@
     text-transform: uppercase;
     letter-spacing: 0.1em;
     white-space: nowrap;
+    user-select: none;
 }
 &nbsp;
 .ib-bar-actions {
@@ -949,7 +1033,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-04-28T02:43:08.549Z
+                at 2026-05-12T12:50:46.852Z
             </div>
         <script src="prettify.js"></script>
         <script>
