@@ -1,6 +1,6 @@
 {
     "name": "@inputbuffer/feedback",
-    "version": "0.1.1",
+    "version": "0.2.0",
     "description": "Collect feedback from any website with a single script tag.",
     "type": "module",
     "main": "dist/widget.js",

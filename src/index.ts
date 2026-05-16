@@ -77,11 +77,22 @@ if (typeof HTMLElement !== 'undefined') {
             if (shouldInject) injectBarStyles();
 
             const placement = this.getAttribute('placement');
+            const showLabelAttr = this.getAttribute('show-label');
+            const showTitleFieldAttr = this.getAttribute('show-title-field');
+            const showEmailFieldAttr = this.getAttribute('show-email-field');
             this._bar = createFeedbackBar({
                 apiKey,
                 apiUrl: this.getAttribute('api-url') ?? undefined,
                 label: this.getAttribute('label') ?? undefined,
                 placement: placement === 'fixed' ? 'fixed' : 'inline',
+                colorScheme: (this.getAttribute('color-scheme') as FeedbackBarConfig['colorScheme']) ?? undefined,
+                showLabel: showLabelAttr === null ? undefined : showLabelAttr === 'true',
+                modalTitle: this.getAttribute('modal-title') ?? undefined,
+                modalPlaceholder: this.getAttribute('modal-placeholder') ?? undefined,
+                showTitleField: showTitleFieldAttr === null ? undefined : showTitleFieldAttr === 'true',
+                showEmailField: showEmailFieldAttr === null ? undefined : showEmailFieldAttr === 'true',
+                source: this.getAttribute('source') ?? undefined,
+                userId: this.getAttribute('user-id') ?? undefined,
                 theme: {
                     primary: this.getAttribute('theme-primary') ?? undefined,
                     background: this.getAttribute('theme-background') ?? undefined,

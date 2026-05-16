@@ -1,3 +1,4 @@
+import { ApiError } from './types.js';
 import type { WidgetConfig, OpenOptions } from './types.js';
 import { applyTheme } from './theme.js';
 import { submitFeedback } from './api.js';
@@ -111,7 +112,10 @@ export function createModal(config: WidgetConfig) {
         } catch (err) {
             const error = err instanceof Error ? err : new Error('Unknown error');
             if (errorEl) {
-                errorEl.textContent = 'Something went wrong. Please try again.';
+                const userMessage = err instanceof ApiError && err.category === 'user'
+                    ? err.detail
+                    : 'Something went wrong. Please try again.';
+                errorEl.textContent = userMessage;
                 errorEl.style.display = 'block';
             }
             errorHandlers.forEach(h => h(error));

@@ -534,23 +534,8 @@
                         </div>
                     </div>
                 </div>
-                <div id="target-common-bar" style="display:none">
-                    <div class="field">
-                        <span class="field-label">targetId</span>
-                        <div class="field-value"><input type="text" id="ctrl-target-id-bar" placeholder="(optional)"></div>
-                    </div>
-                    <div class="field">
-                        <span class="field-label">displayName</span>
-                        <div class="field-value"><input type="text" id="ctrl-target-display-bar" placeholder="(optional)"></div>
-                    </div>
-                    <div class="field">
-                        <span class="field-label">dedupKey</span>
-                        <div class="field-value"><input type="text" id="ctrl-target-dedup-bar" placeholder="(optional)"></div>
-                    </div>
-                </div>
                 <div id="target-meta-documentation-bar" style="display:none">
                     <div class="field"><span class="field-label">page_url</span><div class="field-value"><input type="text" id="ctrl-tmeta-page_url-bar" placeholder="(optional)"></div></div>
-                    <div class="field"><span class="field-label">page_slug</span><div class="field-value"><input type="text" id="ctrl-tmeta-page_slug-bar" placeholder="(optional)"></div></div>
                     <div class="field"><span class="field-label">section_heading</span><div class="field-value"><input type="text" id="ctrl-tmeta-section_heading-bar" placeholder="(optional)"></div></div>
                     <div class="field"><span class="field-label">doc_version</span><div class="field-value"><input type="text" id="ctrl-tmeta-doc_version-bar" placeholder="(optional)"></div></div>
                 </div>
@@ -787,23 +772,8 @@
                         </div>
                     </div>
                 </div>
-                <div id="target-common-modal" style="display:none">
-                    <div class="field">
-                        <span class="field-label">targetId</span>
-                        <div class="field-value"><input type="text" id="ctrl-target-id-modal" placeholder="(optional)"></div>
-                    </div>
-                    <div class="field">
-                        <span class="field-label">displayName</span>
-                        <div class="field-value"><input type="text" id="ctrl-target-display-modal" placeholder="(optional)"></div>
-                    </div>
-                    <div class="field">
-                        <span class="field-label">dedupKey</span>
-                        <div class="field-value"><input type="text" id="ctrl-target-dedup-modal" placeholder="(optional)"></div>
-                    </div>
-                </div>
                 <div id="target-meta-documentation-modal" style="display:none">
                     <div class="field"><span class="field-label">page_url</span><div class="field-value"><input type="text" id="ctrl-tmeta-page_url-modal" placeholder="(optional)"></div></div>
-                    <div class="field"><span class="field-label">page_slug</span><div class="field-value"><input type="text" id="ctrl-tmeta-page_slug-modal" placeholder="(optional)"></div></div>
                     <div class="field"><span class="field-label">section_heading</span><div class="field-value"><input type="text" id="ctrl-tmeta-section_heading-modal" placeholder="(optional)"></div></div>
                     <div class="field"><span class="field-label">doc_version</span><div class="field-value"><input type="text" id="ctrl-tmeta-doc_version-modal" placeholder="(optional)"></div></div>
                 </div>
@@ -916,8 +886,8 @@
         showEmailField: false,
         forceError: false,
         apiUrl: '',
-        target: { type: '', targetId: '', displayName: '', dedupKey: '',
-                  page_url: '', page_slug: '', section_heading: '', doc_version: '',
+        target: { type: '',
+                  page_url: '', section_heading: '', doc_version: '',
                   method: '', path: '', host: '', api_version: '',
                   command: '', subcommand: '', cli_version: '' },
     };
@@ -941,8 +911,8 @@
         openSentiment: '',
         forceError: false,
         apiUrl: '',
-        target: { type: '', targetId: '', displayName: '', dedupKey: '',
-                  page_url: '', page_slug: '', section_heading: '', doc_version: '',
+        target: { type: '',
+                  page_url: '', section_heading: '', doc_version: '',
                   method: '', path: '', host: '', api_version: '',
                   command: '', subcommand: '', cli_version: '' },
     };
@@ -961,13 +931,9 @@
     function buildTargetSpec(t) {
         if (!t.type) return null;
         const spec = { type: t.type };
-        if (t.targetId)    spec.targetId    = t.targetId;
-        if (t.displayName) spec.displayName = t.displayName;
-        if (t.dedupKey)    spec.dedupKey    = t.dedupKey;
         const meta = {};
         if (t.type === 'documentation') {
             if (t.page_url)         meta.page_url         = t.page_url;
-            if (t.page_slug)        meta.page_slug        = t.page_slug;
             if (t.section_heading)  meta.section_heading  = t.section_heading;
             if (t.doc_version)      meta.doc_version      = t.doc_version;
         } else if (t.type === 'rest_endpoint') {
@@ -1132,11 +1098,8 @@
         if (!t.type) return [];
         const p = ' '.repeat(indent);
         const lines = [`${p}target: {`, `${p}    type: ${q(t.type)},`];
-        if (t.targetId)    lines.push(`${p}    targetId: ${q(t.targetId)},`);
-        if (t.displayName) lines.push(`${p}    displayName: ${q(t.displayName)},`);
-        if (t.dedupKey)    lines.push(`${p}    dedupKey: ${q(t.dedupKey)},`);
         const metaKeys = t.type === 'documentation'
-            ? ['page_url','page_slug','section_heading','doc_version']
+            ? ['page_url','section_heading','doc_version']
             : t.type === 'rest_endpoint'
             ? ['method','path','host','api_version']
             : ['command','subcommand','cli_version'];
@@ -1457,7 +1420,6 @@
             btn.classList.add('active');
             st.target.type = btn.dataset.val;
             const type = st.target.type;
-            document.getElementById(`target-common-${suffix}`).style.display = type ? '' : 'none';
             ['documentation','rest_endpoint','cli_command'].forEach(t => {
                 document.getElementById(`target-meta-${t}-${suffix}`).style.display = (t === type) ? '' : 'none';
             });
@@ -1476,10 +1438,7 @@
     wireTargetType('tog-target-type-modal', 'modal', modalState);
 
     for (const [suffix, st] of [['bar', barState], ['modal', modalState]]) {
-        wireTargetText(`ctrl-target-id-${suffix}`,      suffix, st, 'targetId');
-        wireTargetText(`ctrl-target-display-${suffix}`, suffix, st, 'displayName');
-        wireTargetText(`ctrl-target-dedup-${suffix}`,   suffix, st, 'dedupKey');
-        for (const k of ['page_url','page_slug','section_heading','doc_version',
+        for (const k of ['page_url','section_heading','doc_version',
                          'method','path','host','api_version',
                          'command','subcommand','cli_version']) {
             wireTargetText(`ctrl-tmeta-${k}-${suffix}`, suffix, st, k);

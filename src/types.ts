@@ -1,35 +1,56 @@
-interface BaseTargetSpec {
-    targetId?: string;
-    displayName?: string;
-    dedupKey?: string;
+export interface ProblemDetails {
+    type: string;
+    title: string;
+    detail: string;
+    status: number;
+    category?: 'config' | 'user';
+    field?: string;
 }
 
-export interface RestEndpointTarget extends BaseTargetSpec {
+export class ApiError extends Error {
+    type: string;
+    status: number;
+    detail: string;
+    category?: 'config' | 'user';
+    field?: string;
+
+    constructor(problem: ProblemDetails) {
+        super(problem.detail);
+        this.name = 'ApiError';
+        this.type = problem.type;
+        this.status = problem.status;
+        this.detail = problem.detail;
+        this.category = problem.category;
+        this.field = problem.field;
+    }
+}
+
+export interface RestEndpointTarget {
     type: 'rest_endpoint';
     metadata?: {
-        method?: string;
-        path?: string;
+        method: string;
+        path: string;
         host?: string;
         api_version?: string;
     };
 }
 
-export interface DocumentationTarget extends BaseTargetSpec {
+export interface DocumentationTarget {
     type: 'documentation';
     metadata?: {
-        page_url?: string;
-        page_slug?: string;
+        page_url: string;
         section_heading?: string;
         doc_version?: string;
     };
 }
 
-export interface CliCommandTarget extends BaseTargetSpec {
+export interface CliCommandTarget {
     type: 'cli_command';
     metadata?: {
-        command?: string;
+        command: string;
         subcommand?: string;
         cli_version?: string;
+        args?: string[];
     };
 }
 
@@ -61,6 +82,7 @@ export interface FeedbackBarConfig {
     showTitleField?: boolean;
     injectStyles?: boolean;
     source?: string;
+    userId?: string;
 }
 
 export interface FeedbackBarInstance {

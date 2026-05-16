@@ -1,4 +1,5 @@
-import type { OpenOptions } from './types.js';
+import { ApiError } from './types.js';
+import type { OpenOptions, ProblemDetails, TargetSpec } from './types.js';
 
 declare const __WIDGET_VERSION__: string;
 export const WIDGET_VERSION = __WIDGET_VERSION__;
@@ -18,11 +19,7 @@ export async function submitFeedback(
     if (title) body.title = title;
 
     if (email) {
-        body.contactEmail = email;
-    }
-
-    if (options?.sentiment) {
-        body.sentiment = options.sentiment;
+        body.contact_email = email;
     }
 
     if (options?.source) {
@@ -31,13 +28,7 @@ export async function submitFeedback(
 
     if (options?.target) {
         const t = options.target;
-        body.targets = [{
-            target_type: t.type,
-            ...(t.targetId    && { target_id:    t.targetId }),
-            ...(t.displayName && { display_name: t.displayName }),
-            ...(t.dedupKey    && { dedup_key:    t.dedupKey }),
-            metadata: t.metadata,
-        }];
+        body.targets = [{ type: t.type, metadata: t.metadata }];
     }
 
     const controller = new AbortController();
@@ -60,9 +51,66 @@ export async function submitFeedback(
     }
 
     if (!res.ok) {
-        const data: { error?: { message?: string } } = await res.json().catch(() => ({}));
-        throw new Error(data?.error?.message || 'Submission failed. Please try again.');
+        const problem: Partial<ProblemDetails> = await res.json().catch(() => ({}));
+        throw new ApiError({
+            type: problem.type ?? 'https://inputbuffer.io/problems/internal-error',
+            title: problem.title ?? 'Error',
+            detail: problem.detail ?? 'Submission failed. Please try again.',
+            status: problem.status ?? res.status,
+            category: problem.category,
+            field: problem.field,
+        });
     }
 
-    return res.json() as Promise<{ id: string }>;
+    const { data } = await res.json() as { data: { id: string } };
+    return { id: data.id };
+}
+
+const DEFAULT_REACTIONS_URL = 'https://inputbuffer.io/api/v0/reactions';
+
+export async function submitReaction(
+    apiKey: string,
+    reactionValue: 1 | -1,
+    target: TargetSpec,
+    userId?: string | null,
+    apiUrl?: string
+): Promise<void> {
+    const url = apiUrl ? apiUrl.replace(/\/inputs$/, '/reactions') : DEFAULT_REACTIONS_URL;
+
+    const body: Record<string, unknown> = {
+        reaction_value: reactionValue,
+        target: { type: target.type, metadata: target.metadata },
+    };
+    if (userId) body.user_id = userId;
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10_000);
+    let res: Response;
+    try {
+        res = await fetch(url, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${apiKey}`,
+                'Content-Type': 'application/json',
+                'X-IB-Client': `inputbuffer-widget/${WIDGET_VERSION} (javascript)`,
+            },
+            body: JSON.stringify(body),
+            credentials: 'omit',
+            signal: controller.signal,
+        });
+    } finally {
+        clearTimeout(timeoutId);
+    }
+
+    if (!res.ok) {
+        const problem: Partial<ProblemDetails> = await res.json().catch(() => ({}));
+        throw new ApiError({
+            type: problem.type ?? 'https://inputbuffer.io/problems/internal-error',
+            title: problem.title ?? 'Error',
+            detail: problem.detail ?? 'Submission failed. Please try again.',
+            status: problem.status ?? res.status,
+            category: problem.category,
+            field: problem.field,
+        });
+    }
 }

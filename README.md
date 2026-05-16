@@ -236,8 +236,14 @@ Supported attributes:
 | `theme-selected` | Background color of the selected thumb. |
 | `theme-selected-color` | Icon color of the selected thumb. |
 | `inject-styles` | Set to `"false"` to skip automatic style injection. |
-
-> **Note:** `colorScheme`, `showLabel`, `modalTitle`, `modalPlaceholder`, `showTitleField`, `showEmailField`, and `source` are not available as web component attributes. Use `InputBufferIO.createBar(config)` for those options.
+| `color-scheme` | `"light"`, `"dark"`, or `"auto"`. |
+| `show-label` | `"true"` to show the label, `"false"` to hide it. |
+| `modal-title` | Title shown above the feedback textarea. |
+| `modal-placeholder` | Placeholder text for the feedback textarea. |
+| `show-title-field` | `"true"` to show an optional title input. |
+| `show-email-field` | `"true"` to show an optional email input. |
+| `source` | Identifier for the feedback source. |
+| `user-id` | Stable user identifier for reaction deduplication. When set, only one reaction per user is recorded per target (all-time). When omitted, deduplication falls back to IP address with a 24-hour window. |
 
 ### `InputBufferIO.createBar(config)`
 
@@ -275,6 +281,7 @@ document.getElementById('my-slot').appendChild(bar.element);
 | `showEmailField` | boolean | `false` | Show/hide the email field in the follow-up popover. |
 | `showTitleField` | boolean | `false` | Show/hide the title field in the follow-up popover. |
 | `source` | string | — | Tag identifying which of your surfaces this widget is embedded on (e.g. `"ios-app"`, `"docs-site"`). Stored on every submission for filtering in the dashboard. |
+| `userId` | string | — | Stable user identifier for reaction deduplication. When set, only one reaction per user is recorded per target (all-time). When omitted, deduplication falls back to IP address with a 24-hour window. |
 | `injectStyles` | boolean | `true` | Set to `false` to skip automatic style injection. |
 
 ### `bar.on(event, handler)`
@@ -291,7 +298,7 @@ bar.on('error',  (err)           => console.error('Submission failed:', err));
 
 | Event | Handler signature | When it fires |
 |---|---|---|
-| `vote` | `({ sentiment: 'positive' \| 'negative' }) => void` | User clicks a thumb before submitting. |
+| `vote` | `({ sentiment: 'positive' \| 'negative' }) => void` | User clicks a thumb. The reaction is recorded immediately via the reactions API (if a `target` is configured), and the selection is persisted in `localStorage` for 24 hours so it survives page reloads. |
 | `open` | `({ sentiment: 'positive' \| 'negative' }) => void` | The follow-up popover opens. |
 | `submit` | `({ id: string }) => void` | Feedback was submitted successfully. |
 | `close` | `() => void` | The follow-up popover closes. |
@@ -630,6 +637,27 @@ document.getElementById('my-slot').appendChild(bar.element);
     data-inject-styles="false">
 </script>
 ```
+
+## `source` vs `target`
+
+These are two separate concepts:
+
+- **`source`** — *where* your widget is deployed. Identifies the platform or product surface, 
+  e.g. `"website"`, `"ios-app"`, `"chrome-extension"`. Use this to filter feedback by deployment 
+  environment in your dashboard.
+
+- **`target`** — *what* the feedback is about. A structured object describing the specific content 
+  or feature, e.g. a REST endpoint, a docs page, or a CLI command. Use this to group feedback by 
+  the thing being reviewed, regardless of where the widget is embedded.
+
+You can use both together:
+```js
+InputBufferIO.createBar({
+    apiKey: 'YOUR_WIDGET_TOKEN',
+    source: 'website',
+    target: { type: 'documentation', metadata: { page_slug: 'getting-started' } },
+});
+
 
 ---
 
