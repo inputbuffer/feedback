@@ -1,3 +1,4 @@
+import { ApiError } from './types.js';
 import type { FeedbackBarConfig, FeedbackBarInstance } from './types.js';
 import { submitFeedback, submitReaction } from './api.js';
 
@@ -27,7 +28,6 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
     function storageKey(): string {
         const t = config.target;
         if (!t) return `ib:reaction:${config.apiKey}:${window.location.pathname}`;
-        if (t.targetId) return `ib:reaction:${config.apiKey}:${t.targetId}`;
         return `ib:reaction:${config.apiKey}:${t.type}:${JSON.stringify(t.metadata)}`;
     }
 
@@ -256,7 +256,10 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
             setTimeout(() => { closePopover(); clearSelection(); }, 2000);
         } catch (err) {
             emit('error', err instanceof Error ? err : new Error('Something went wrong.'));
-            errorEl.textContent = err instanceof Error ? err.message : 'Something went wrong.';
+            const userMessage = err instanceof ApiError && err.category === 'user'
+                ? err.detail
+                : 'Something went wrong. Please try again.';
+            errorEl.textContent = userMessage;
             submitBtn.disabled = false;
             submitBtn.textContent = 'Send feedback';
         }

@@ -271,7 +271,7 @@ describe('createFeedbackBar', () => {
             vi.useRealTimers();
         });
 
-        it('shows error message on submit failure', async () => {
+        it('shows generic error message on submit failure', async () => {
             vi.mocked(submitFeedback).mockRejectedValue(new Error('Server error'));
             const bar = createFeedbackBar({ apiKey: 'key' });
             document.body.appendChild(bar.element);
@@ -279,10 +279,28 @@ describe('createFeedbackBar', () => {
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(bar.element.querySelector('.ib-bar-error')!.textContent).toBe('Server error');
+            expect(bar.element.querySelector('.ib-bar-error')!.textContent).toBe('Something went wrong. Please try again.');
         });
 
-        it('falls back to generic error message for non-Error throws', async () => {
+        it('shows ApiError detail for user-category errors', async () => {
+            const { ApiError } = await import('./types.js');
+            vi.mocked(submitFeedback).mockRejectedValue(new ApiError({
+                type: 'https://inputbuffer.io/problems/rate-limited',
+                title: 'Rate Limited',
+                detail: 'Too many requests. Please slow down.',
+                status: 429,
+                category: 'user',
+            }));
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
+            (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
+            await flushMicrotasks();
+            expect(bar.element.querySelector('.ib-bar-error')!.textContent).toBe('Too many requests. Please slow down.');
+        });
+
+        it('shows generic error message for non-Error throws', async () => {
             vi.mocked(submitFeedback).mockRejectedValue('string error');
             const bar = createFeedbackBar({ apiKey: 'key' });
             document.body.appendChild(bar.element);
@@ -290,7 +308,7 @@ describe('createFeedbackBar', () => {
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(bar.element.querySelector('.ib-bar-error')!.textContent).toBe('Something went wrong.');
+            expect(bar.element.querySelector('.ib-bar-error')!.textContent).toBe('Something went wrong. Please try again.');
         });
 
         it('re-enables submit button on error', async () => {
