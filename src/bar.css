@@ -106,8 +106,7 @@
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }
 
-.ib-bar-wrapper .ib-bar-body .ib-bar-title-input,
-.ib-bar-wrapper .ib-bar-body .ib-bar-email {
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input {
     width: 100%;
     background: var(--ib-background);
     border: 1px solid var(--ib-border);
@@ -125,17 +124,11 @@
     margin-bottom: 8px;
 }
 
-.ib-bar-email {
-    margin-top: 8px;
-}
-
-.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:hover,
-.ib-bar-wrapper .ib-bar-body .ib-bar-email:hover {
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:hover {
     border-color: var(--ib-input-hover-border);
 }
 
-.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:focus,
-.ib-bar-wrapper .ib-bar-body .ib-bar-email:focus {
+.ib-bar-wrapper .ib-bar-body .ib-bar-title-input:focus {
     border-color: var(--ib-focus-color);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }

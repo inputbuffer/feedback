@@ -122,14 +122,9 @@ describe('createModal', () => {
             expect((document.getElementById('ib-textarea') as HTMLTextAreaElement).placeholder).toBe("What's on your mind?");
         });
 
-        it('hides the email field by default', () => {
+        it('never renders an email field', () => {
             createModal({ apiKey: 'key' }).open();
             expect(document.getElementById('ib-email')).toBeNull();
-        });
-
-        it('shows the email field when showEmailField is true', () => {
-            createModal({ apiKey: 'key', showEmailField: true }).open();
-            expect(document.getElementById('ib-email')).not.toBeNull();
         });
 
         it('modal has role=dialog and aria-modal', () => {
@@ -177,7 +172,7 @@ describe('createModal', () => {
             (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
-            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toMatchObject({ sentiment: 'positive' });
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ sentiment: 'positive' });
         });
     });
 
@@ -199,12 +194,6 @@ describe('createModal', () => {
             const modal = createModal({ apiKey: 'key' });
             modal.open({ prefill: { description: 'Prefilled feedback text' } });
             expect((document.getElementById('ib-textarea') as HTMLTextAreaElement).value).toBe('Prefilled feedback text');
-        });
-
-        it('prefills email input', () => {
-            const modal = createModal({ apiKey: 'key', showEmailField: true });
-            modal.open({ prefill: { email: 'user@example.com' } });
-            expect((document.getElementById('ib-email') as HTMLInputElement).value).toBe('user@example.com');
         });
 
         it('pre-selects positive sentiment when opened with sentiment: positive', () => {
@@ -246,51 +235,63 @@ describe('createModal', () => {
     });
 
     describe('submission success', () => {
-        it('calls submitFeedback with apiKey, description, and email', async () => {
+        it('calls submitFeedback with apiKey, description, and title', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            createModal({ apiKey: 'my-key', showEmailField: true }).open();
+            createModal({ apiKey: 'my-key' }).open();
 
             (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
-            (document.getElementById('ib-email') as HTMLInputElement).value = 'a@b.com';
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
 
-            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', 'a@b.com', null, expect.objectContaining({ sentiment: undefined }), undefined);
+            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', null, expect.objectContaining({ sentiment: undefined }), undefined);
         });
 
-        it('uses prefill email when input is empty', async () => {
+        it('passes submittedBy from config to submitFeedback', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            createModal({ apiKey: 'key', showEmailField: true }).open({ prefill: { email: 'prefill@example.com' } });
+            createModal({ apiKey: 'key', submittedBy: 'user_12345' }).open();
 
-            // Clear the email input that was prefilled
-            (document.getElementById('ib-email') as HTMLInputElement).value = '';
             (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
 
-            expect(vi.mocked(submitFeedback).mock.calls[0][2]).toBe('prefill@example.com');
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ submittedBy: 'user_12345' });
+        });
+
+        it('lets open() override submittedBy for one submission', async () => {
+            vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
+            createModal({ apiKey: 'key', submittedBy: 'from-config' }).open({ submittedBy: 'from-open' });
+
+            (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
+            document.getElementById('ib-submit')!.click();
+            await flushMicrotasks();
+
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ submittedBy: 'from-open' });
         });
 
         it('passes apiUrl from config to submitFeedback', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            createModal({ apiKey: 'key', apiUrl: 'http://localhost:3000/api/widget/inputs' }).open();
+            createModal({ apiKey: 'key', apiUrl: 'http://localhost:8080' }).open();
 
             (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
 
-            expect(vi.mocked(submitFeedback).mock.calls[0][5]).toBe('http://localhost:3000/api/widget/inputs');
+            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toBe('http://localhost:8080');
         });
 
         it('passes target option to submitFeedback', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            createModal({ apiKey: 'key' }).open({ target: { type: 'documentation' } });
+            createModal({ apiKey: 'key' }).open({
+                target: { type: 'documentation', metadata: { page_url: '/docs' } },
+            });
 
             (document.getElementById('ib-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             document.getElementById('ib-submit')!.click();
             await flushMicrotasks();
 
-            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toMatchObject({ target: { type: 'documentation' } });
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({
+                target: { type: 'documentation', metadata: { page_url: '/docs' } },
+            });
         });
 
         it('shows success message', async () => {

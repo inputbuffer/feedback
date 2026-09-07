@@ -1,6 +1,7 @@
 import type { WidgetConfig, OpenOptions, WidgetInstance } from './types.js';
 import { createModal as createModalInstance } from './modal.js';
 import { WIDGET_VERSION } from './api.js';
+import { modalConfigFromScript } from './attrs.js';
 import cssText from './modal.css';
 
 // Capture currentScript synchronously — only valid at script load time.
@@ -50,23 +51,11 @@ const InputBufferIO = { createModal, version: WIDGET_VERSION };
 
 // Auto-init when data-api-key is present on the script tag
 (function autoInit() {
-    const apiKey = _currentScript?.dataset.apiKey;
+    if (!_currentScript) return;
+    const apiKey = _currentScript.dataset.apiKey;
     if (!apiKey) return;
 
-    const injectStylesAttr = _currentScript?.dataset.injectStyles;
-    const instance = createModal({
-        apiKey,
-        apiUrl: _currentScript?.dataset.apiUrl,
-        attachTo: _currentScript?.dataset.attachTo,
-        injectStyles: injectStylesAttr === undefined ? true : injectStylesAttr !== 'false',
-        theme: {
-            primary: _currentScript?.dataset.themePrimary,
-            background: _currentScript?.dataset.themeBackground,
-            text: _currentScript?.dataset.themeText,
-            selected: _currentScript?.dataset.themeSelected,
-            selectedColor: _currentScript?.dataset.themeSelectedColor,
-        },
-    });
+    const instance = createModal(modalConfigFromScript(_currentScript, apiKey));
 
     (InputBufferIO as Record<string, unknown>)['_defaultInstance'] = instance;
 })();

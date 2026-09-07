@@ -26,19 +26,23 @@ Type-check before submitting changes.
 - [src/bar.ts](src/bar.ts) — Builds the thumbs-up/down feedback bar with a popover form. Emits `vote`, `open`, `submit`, `close`, `error` events.
 - [src/modal-entry.ts](src/modal-entry.ts) — Entry point for the modal-only bundle (`dist/modal.js`).
 - [src/bar-entry.ts](src/bar-entry.ts) — Entry point for the bar-only bundle (`dist/bar.js`).
-- [src/api.ts](src/api.ts) — POSTs to `https://inputbuffer.io/api/v0/inputs` with Bearer auth. Returns a feedback ID on success.
+- [src/api.ts](src/api.ts) — `submitFeedback()` POSTs to `/api/v0/feedback` and returns a feedback ID; `submitReaction()` POSTs to `/api/v0/reactions` and returns the recorded reaction with its resolved target. Both compose their URL from a base origin (`apiUrl`, defaulting to `https://inputbuffer.io`) plus a fixed path, share one `request()` helper for Bearer auth / `X-IB-Client` / the 10s timeout, and clamp field lengths to the API's limits.
+- [src/attrs.ts](src/attrs.ts) — Shared attribute parsing for the declarative entry points: `barConfigFromElement()`, `modalConfigFromScript()`, `targetFromAttributes()`. All three entry points delegate here so the bundles cannot support different attribute sets.
+- [src/errors.ts](src/errors.ts) — `userFacingMessage()` picks what to show the end user: `category: 'user'` problems show the API's `detail`, `category: 'integration'` problems show a generic message and log the real reason via `warn()`.
 - [src/theme.ts](src/theme.ts) — Injects CSS custom properties (`--ib-primary`, `--ib-background`, `--ib-surface`, `--ib-text`, `--ib-selected`, `--ib-selected-color`) onto the modal element.
-- [src/types.ts](src/types.ts) — All TypeScript interfaces: `WidgetConfig`, `OpenOptions`, `WidgetInstance`, `FeedbackBarConfig`, `FeedbackBarInstance`, `TargetSpec`.
+- [src/types.ts](src/types.ts) — All TypeScript interfaces: `WidgetConfig`, `OpenOptions`, `WidgetInstance`, `FeedbackBarConfig`, `FeedbackBarInstance`, `TargetSpec`, `ReactionResult`, plus `ProblemType` / `ProblemDetails` / `ApiError` mirroring the API's RFC 7807 errors.
+
+**API contract:** the source of truth is <https://inputbuffer.io/docs/api/openapi.yaml>. Check it before changing any payload. Notable constraints: the widget needs a widget-scoped token (`ibw_`, origin-allowlisted — a full-access `ib_` token is rejected from a browser); `FeedbackCreate` accepts only `title`, `description`, `submitted_by`, and `targets`; a target's `metadata` is required and each type has its own required fields; reactions take a singular `target` while feedback takes a `targets` array.
 - [src/modal.css](src/modal.css) / [src/bar.css](src/bar.css) — Component styles. All `#ib-*` IDs and `.ib-bar-*` / `.ib-bar-popover-*` classes are stable public API; users can override them.
 
 **Initialization flow:**
 
 1. Script tag loads → `currentScript` captured → CSS embedded in bundle is injected as `<style>` tags
-2. Auto-init reads `data-api-key`, `data-attach-to`, `data-api-url`, `data-inject-styles`, `data-color-scheme`, and `data-theme-*` (primary, background, text, selected, selected-color) from the script tag
+2. Auto-init reads the script tag's `data-*` attributes via `modalConfigFromScript()`
 3. `createModal(config)` creates a `WidgetInstance`; if `attachTo` is set, a click listener opens the modal
-4. `open(options?)` accepts runtime `target` metadata and `prefill` values
-5. `createBar(config)` creates a `FeedbackBarInstance` with a thumbs bar and popover form
-6. `<inputbuffer-feedback>` custom element provides a declarative HTML API for the bar
+4. `open(options?)` accepts a runtime `target`, `prefill.description`, `title`, `sentiment`, and `submittedBy`
+5. `createBar(config)` creates a `FeedbackBarInstance` with a thumbs bar and popover form; a thumb click fires a fire-and-forget reaction when a `target` is configured
+6. `<inputbuffer-feedback>` custom element provides a declarative HTML API for the bar, including `target-*` attributes
 
 **Build:**
 

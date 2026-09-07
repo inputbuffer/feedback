@@ -19,6 +19,7 @@ This package is a lightweight embeddable widget you can drop into your documenta
   - [CDN](#cdn-recommended)
   - [npm](#npm)
   - [Browser support](#browser-support)
+- [Authentication](#authentication)
 - [Reference](#reference)
 - [Feedback bar](#feedback-bar)
   - [Web component](#web-component)
@@ -33,7 +34,10 @@ This package is a lightweight embeddable widget you can drop into your documenta
   - [`instance.destroy()`](#instancedestroy)
   - [`instance.on(event, handler)`](#instanceonevent-handler)
   - [`InputBufferIO.version`](#inputbufferioversion)
-- [Target metadata schemas](#target-metadata-schemas)
+- [Targets](#targets)
+  - [Target metadata schemas](#target-metadata-schemas)
+  - [Target attributes](#target-attributes)
+- [Errors](#errors)
 - [CSS customization](#css-customization)
   - [Modal selectors](#modal-selectors)
   - [Bar selectors](#bar-selectors)
@@ -45,15 +49,15 @@ This package is a lightweight embeddable widget you can drop into your documenta
 
 ## Quick start
 
-Before you start you will need a widget API key from your [InputBuffer dashboard](https://inputbuffer.io).
+Before you start you will need a **widget token** (`ibw_…`) from your [InputBuffer dashboard](https://inputbuffer.io) — see [Authentication](#authentication). Widget tokens are designed to be embedded in a browser; your full-access `ib_…` token is not and will be rejected.
 
 There are three bundles — pick the one that matches your use case:
 
 | Bundle | Size | What it includes |
 |---|---|---|
 | `bar.js` | 18 KB | Thumbs up/down bar with optional follow-up form |
-| `modal.js` | 19 KB | Full-text feedback modal |
-| `widget.js` | 36 KB | Both bar and modal |
+| `modal.js` | 16 KB | Full-text feedback modal |
+| `widget.js` | 32 KB | Both bar and modal |
 
 ### Inline thumbs bar (web component)
 
@@ -119,7 +123,7 @@ If you want a full-text feedback modal triggered by a button, load `modal.js` wi
 </script>
 ```
 
-When the page loads the widget connects to `#feedback-btn`. Clicking it opens a modal with a text field and optional email field.
+When the page loads the widget connects to `#feedback-btn`. Clicking it opens a modal with a text field and an optional title field.
 
 ### Verify it's working
 
@@ -129,6 +133,7 @@ Submit a test message from your page and open your InputBuffer dashboard. It sho
 
 - **Nothing happens on click:** check that the `data-attach-to` selector matches your button's `id` exactly, including the `#`.
 - **401 error:** your `data-api-key` is invalid — try again with a fresh copy from the dashboard, and if it still fails [contact us](https://inputbuffer.io/contact).
+- **403 error:** either you used a full-access `ib_…` token instead of a widget `ibw_…` token, or the page's origin is not on your token's allowlist. The widget logs the specific reason to the browser console — see [Errors](#errors).
 
 ### Where to go from here
 
@@ -145,12 +150,12 @@ Submit a test message from your page and open your InputBuffer dashboard. It sho
 Load only the component you need — each is roughly half the full bundle:
 
 ```html
-<!-- Full bundle (modal + bar) — 36 KB -->
+<!-- Full bundle (modal + bar) — 32 KB -->
 <script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/widget.js"
     data-api-key="YOUR_WIDGET_TOKEN">
 </script>
 
-<!-- Modal only — 19 KB -->
+<!-- Modal only — 16 KB -->
 <script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/modal.js"
     data-api-key="YOUR_WIDGET_TOKEN">
 </script>
@@ -161,7 +166,7 @@ Load only the component you need — each is roughly half the full bundle:
 
 > **SRI note:** For production deployments, add a Subresource Integrity `integrity` attribute to guard against CDN compromise. Generate the hash for each pinned version with:
 > ```bash
-> curl -s https://cdn.jsdelivr.net/npm/@inputbuffer/feedback@0.1.0/dist/widget.js | openssl dgst -sha384 -binary | openssl base64 -A
+> curl -s https://cdn.jsdelivr.net/npm/@inputbuffer/feedback@0.3.0/dist/widget.js | openssl dgst -sha384 -binary | openssl base64 -A
 > ```
 > Then use `integrity="sha384-<hash>" crossorigin="anonymous"` on the `<script>` tag.
 
@@ -178,10 +183,10 @@ npm install @inputbuffer/feedback
 Import only what you use — your bundler will tree-shake the rest:
 
 ```js
-// Modal only (~19 KB unminified)
+// Modal only (~16 KB minified)
 import { createModal } from '@inputbuffer/feedback/modal';
 
-// Bar only (~18 KB unminified)
+// Bar only (~18 KB minified)
 import { createBar } from '@inputbuffer/feedback/bar';
 
 // Full bundle
@@ -193,6 +198,25 @@ TypeScript types are included and exported from each entry point.
 ### Browser support
 
 Chrome 111+, Firefox 113+, Safari 16.2+. The bundles target ES2019 and rely on Custom Elements v1 (used by the `<inputbuffer-feedback>` web component).
+
+---
+
+## Authentication
+
+InputBuffer issues two kinds of token, and this widget needs the browser-safe one.
+
+| Token | Prefix | Where it belongs |
+|---|---|---|
+| Widget | `ibw_` | **Use this.** Safe to embed in a public page. Scoped to submitting feedback and reactions, nothing else. |
+| Full access | `ib_` | Server-side only. Rejected with `403 widget-token-restricted` when sent from a browser. |
+
+Create a widget token in **Settings → API Tokens** with the Widget scope, then add the origins your widget is embedded on to the token's allowlist. A request from an origin that isn't allowlisted is rejected with `403 forbidden-origin`.
+
+Because the token is public, it can only create feedback and reactions — it cannot read your existing feedback, browse buffers, or touch anything else in your organization.
+
+> **Privacy:** feedback text is sent to third-party AI services for classification and search, and is not scrubbed first. Don't prompt users for personal information, credentials, or production secrets.
+
+The full API this widget speaks to is documented at [inputbuffer.io/docs/api](https://inputbuffer.io/docs/api/getting-started), with the machine-readable spec at [openapi.yaml](https://inputbuffer.io/docs/api/openapi.yaml).
 
 ---
 
@@ -226,8 +250,8 @@ Supported attributes:
 
 | Attribute | Description |
 |---|---|
-| `api-key` | **Required.** Your widget API key. |
-| `api-url` | Override the API endpoint. |
+| `api-key` | **Required.** Your widget token (`ibw_…`). |
+| `api-url` | Override the API base origin (e.g. `http://localhost:8080`). Paths are appended by the widget. |
 | `label` | Text shown next to the thumbs. |
 | `placement` | `"inline"` (default) or `"fixed"` (pins to bottom of viewport). |
 | `theme-primary` | Primary color. |
@@ -241,9 +265,21 @@ Supported attributes:
 | `modal-title` | Title shown above the feedback textarea. |
 | `modal-placeholder` | Placeholder text for the feedback textarea. |
 | `show-title-field` | `"true"` to show an optional title input. |
-| `show-email-field` | `"true"` to show an optional email input. |
-| `source` | Identifier for the feedback source. |
+| `submitted-by` | Opaque identifier for whoever is submitting, e.g. your own user id. Sent as `submitted_by`. |
 | `user-id` | Stable user identifier for reaction deduplication. When set, only one reaction per user is recorded per target (all-time). When omitted, deduplication falls back to IP address with a 24-hour window. |
+| `target-*` | Attaches the bar to a specific docs page, endpoint, or command. See [Target attributes](#target-attributes). |
+
+Attach a target to record thumb votes against it:
+
+```html
+<inputbuffer-feedback
+  api-key="ibw_YOUR_WIDGET_TOKEN"
+  label="Was this helpful?"
+  target-type="documentation">
+</inputbuffer-feedback>
+```
+
+Without a target, a thumb click still opens the follow-up form, but there is nothing for the reactions API to count the vote against.
 
 ### `InputBufferIO.createBar(config)`
 
@@ -259,8 +295,8 @@ document.getElementById('my-slot').appendChild(bar.element);
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `apiKey` | string | — | **Required.** Your widget API key. |
-| `apiUrl` | string | — | Override the API endpoint. |
+| `apiKey` | string | — | **Required.** Your widget token (`ibw_…`). |
+| `apiUrl` | string | `'https://inputbuffer.io'` | API base origin. Paths are appended by the widget. |
 | `label` | string | — | Text shown next to the thumbs. |
 | `showLabel` | boolean | `true` | Set to `false` to show thumbs only. |
 | `placement` | `'inline'` \| `'fixed'` | `'inline'` | `fixed` pins the bar to the bottom of the viewport. |
@@ -271,16 +307,12 @@ document.getElementById('my-slot').appendChild(bar.element);
 | `theme.text` | string | — | Text color. |
 | `theme.selected` | string | — | Background color of the selected thumb. |
 | `theme.selectedColor` | string | — | Icon color of the selected thumb. |
-| `target.type` | `'documentation'` \| `'rest_endpoint'` \| `'cli_command'` | — | The kind of thing the user is giving feedback on. Used for AI categorization. |
-| `target.targetId` | string | — | Optional stable ID for this target (used for deduplication on the server). |
-| `target.displayName` | string | — | Human-readable name shown in the InputBuffer dashboard (max 500 chars). |
-| `target.dedupKey` | string | — | Custom deduplication key (max 500 chars). |
-| `target.metadata` | object | — | Type-specific fields — see [Target metadata schemas](#target-metadata-schemas). |
+| `target.type` | `'documentation'` \| `'rest_endpoint'` \| `'cli_command'` | — | The kind of thing the user is giving feedback on. Required to record thumb votes. |
+| `target.metadata` | object | — | **Required** when `target` is set. Type-specific fields — see [Target metadata schemas](#target-metadata-schemas). |
 | `modalTitle` | string | — | Heading for the follow-up popover. |
 | `modalPlaceholder` | string | — | Textarea placeholder for the follow-up popover. |
-| `showEmailField` | boolean | `false` | Show/hide the email field in the follow-up popover. |
 | `showTitleField` | boolean | `false` | Show/hide the title field in the follow-up popover. |
-| `source` | string | — | Tag identifying which of your surfaces this widget is embedded on (e.g. `"ios-app"`, `"docs-site"`). Stored on every submission for filtering in the dashboard. |
+| `submittedBy` | string | — | Opaque identifier for whoever is submitting, e.g. your own user id or an anonymous token. Sent as `submitted_by` (max 300 chars). |
 | `userId` | string | — | Stable user identifier for reaction deduplication. When set, only one reaction per user is recorded per target (all-time). When omitted, deduplication falls back to IP address with a 24-hour window. |
 | `injectStyles` | boolean | `true` | Set to `false` to skip automatic style injection. |
 
@@ -298,7 +330,7 @@ bar.on('error',  (err)           => console.error('Submission failed:', err));
 
 | Event | Handler signature | When it fires |
 |---|---|---|
-| `vote` | `({ sentiment: 'positive' \| 'negative' }) => void` | User clicks a thumb. The reaction is recorded immediately via the reactions API (if a `target` is configured), and the selection is persisted in `localStorage` for 24 hours so it survives page reloads. |
+| `vote` | `({ sentiment: 'positive' \| 'negative' }) => void` | User clicks a thumb. If a `target` is configured, the reaction is recorded immediately via `POST /api/v0/reactions` (fire-and-forget — a failure never blocks the follow-up form). The selection is persisted in `localStorage` for 24 hours so it survives page reloads. |
 | `open` | `({ sentiment: 'positive' \| 'negative' }) => void` | The follow-up popover opens. |
 | `submit` | `({ id: string }) => void` | Feedback was submitted successfully. |
 | `close` | `() => void` | The follow-up popover closes. |
@@ -320,11 +352,16 @@ When `data-api-key` is present on the script tag, the widget initializes automat
 
 | Attribute | Type | Description |
 |---|---|---|
-| `data-api-key` | string | **Required.** Your widget API key. |
-| `data-api-url` | string | Override the API endpoint (useful for local dev/testing). |
+| `data-api-key` | string | **Required.** Your widget token (`ibw_…`). |
+| `data-api-url` | string | Override the API base origin (useful for local dev/testing). |
 | `data-attach-to` | string | CSS selector for the element that opens the modal on click. |
 | `data-inject-styles` | boolean | Set to `"false"` to skip automatic style injection. |
 | `data-color-scheme` | string | `"light"`, `"dark"`, or `"auto"`. |
+| `data-title` | string | Modal heading. |
+| `data-placeholder` | string | Textarea placeholder text. |
+| `data-show-title-field` | boolean | `"true"` to show an optional title field. |
+| `data-show-sentiment` | boolean | `"true"` to show thumbs up/down buttons in the modal. |
+| `data-submitted-by` | string | Opaque identifier for whoever is submitting. Sent as `submitted_by`. |
 | `data-theme-primary` | string | Primary color (buttons, focus rings). Any CSS color value. |
 | `data-theme-background` | string | Modal background color. |
 | `data-theme-text` | string | Modal text color. |
@@ -345,16 +382,15 @@ const ib = InputBufferIO.createModal({
 
 | Property | Type | Default | Description |
 |---|---|---|---|
-| `apiKey` | string | — | **Required.** Your widget API key. |
-| `apiUrl` | string | — | Override the API endpoint (useful for local dev/testing). |
+| `apiKey` | string | — | **Required.** Your widget token (`ibw_…`). |
+| `apiUrl` | string | `'https://inputbuffer.io'` | API base origin (useful for local dev/testing). Paths are appended by the widget. |
 | `attachTo` | string | — | CSS selector. Clicking the matched element calls `open()`. |
 | `injectStyles` | boolean | `true` | Set to `false` to skip automatic style injection. |
 | `title` | string | — | Modal heading. Omit to render no title. |
 | `placeholder` | string | `"What's on your mind?"` | Textarea placeholder text. |
-| `showEmailField` | boolean | `false` | Set to `true` to show an optional email field. |
 | `showTitleField` | boolean | `false` | Set to `true` to show an optional title field. |
 | `showSentiment` | boolean | `false` | Show thumbs up/down sentiment buttons in the modal. |
-| `source` | string | — | Tag identifying which of your surfaces this widget is embedded on (e.g. `"ios-app"`, `"docs-site"`). Stored on every submission for filtering in the dashboard. |
+| `submittedBy` | string | — | Opaque identifier for whoever is submitting, e.g. your own user id or an anonymous token. Sent as `submitted_by` (max 300 chars). |
 | `colorScheme` | `'light'` \| `'dark'` \| `'auto'` | `'auto'` | Force a color scheme or follow the system setting. |
 | `theme.primary` | string | — | Primary color (buttons, focus rings). |
 | `theme.background` | string | — | Modal background color. |
@@ -372,8 +408,6 @@ ib.open({
     title: 'Was this helpful?',
     target: {
         type: 'documentation',
-        targetId: 'auth-overview',
-        displayName: 'Authentication overview',
         metadata: {
             page_url: window.location.href,
             section_heading: 'Authentication',
@@ -388,15 +422,11 @@ ib.open({
 | Property | Type | Description |
 |---|---|---|
 | `title` | string | Overrides the modal heading for this open call. |
-| `sentiment` | `'positive'` \| `'negative'` | Pre-selects a sentiment thumb. Only relevant when `showSentiment` is enabled. |
-| `target.type` | `'documentation'` \| `'rest_endpoint'` \| `'cli_command'` | The kind of thing the user is giving feedback on. Used for AI categorization. |
-| `target.targetId` | string | Optional stable ID for this target (used for deduplication on the server). |
-| `target.displayName` | string | Human-readable name shown in the InputBuffer dashboard (max 500 chars). |
-| `target.dedupKey` | string | Custom deduplication key (max 500 chars). |
-| `target.metadata` | object | Type-specific fields — see [Target metadata schemas](#target-metadata-schemas). |
-| `prefill.email` | string | Pre-populates the email field. |
+| `sentiment` | `'positive'` \| `'negative'` | Pre-selects a sentiment thumb. Only relevant when `showSentiment` is enabled. Drives the UI only — the feedback API has no sentiment field. |
+| `target.type` | `'documentation'` \| `'rest_endpoint'` \| `'cli_command'` | The kind of thing the user is giving feedback on. |
+| `target.metadata` | object | **Required** when `target` is set. Type-specific fields — see [Target metadata schemas](#target-metadata-schemas). |
 | `prefill.description` | string | Pre-populates the textarea. |
-| `source` | string | Overrides the `source` set in `createModal(config)` for this open call. |
+| `submittedBy` | string | Overrides the `submittedBy` set in `createModal(config)` for this open call. |
 
 ### `instance.close()`
 
@@ -427,19 +457,26 @@ ib.on('error',  (err)    => console.error('Submission failed:', err));
 The currently loaded widget version string.
 
 ```js
-console.log(InputBufferIO.version); // e.g. "0.1.0"
+console.log(InputBufferIO.version); // e.g. "0.3.0"
 ```
+
+---
+
+## Targets
+
+A target is the thing feedback is *about* — a docs page, an API endpoint, a CLI command. Two targets of the same type with the same metadata are the same target, which is how InputBuffer groups feedback and counts reactions. You don't register targets ahead of time: send the type and metadata, and the API resolves an existing target or creates one.
+
+Targets are also what make the thumbs bar's votes countable. Without a target, a thumb click opens the follow-up form but records no reaction.
 
 ### Target metadata schemas
 
-The fields accepted in `target.metadata` depend on `target.type`. The server validates required fields; the client does not enforce them.
+`metadata` is required whenever you set a target, and the fields it accepts depend on `target.type`. The server rejects a target that is missing a required field with a `422`.
 
 **`documentation`**
 
 | Field | Required | Description |
 |---|---|---|
-| `page_url` | No | Full URL of the page. |
-| `page_slug` | No | Slug or path of the page. |
+| `page_url` | **Yes** | URL of the documentation page. |
 | `section_heading` | No | Heading of the section the user is viewing. |
 | `doc_version` | No | Documentation version string. |
 
@@ -447,8 +484,8 @@ The fields accepted in `target.metadata` depend on `target.type`. The server val
 
 | Field | Required | Description |
 |---|---|---|
-| `method` | Yes* | HTTP method (`GET`, `POST`, etc.). |
-| `path` | Yes* | API path (e.g. `/v1/users`). |
+| `method` | **Yes** | HTTP method (`GET`, `POST`, etc.). |
+| `path` | **Yes** | API path (e.g. `/users/{id}`). |
 | `host` | No | Hostname (e.g. `api.example.com`). |
 | `api_version` | No | API version string. |
 
@@ -456,11 +493,79 @@ The fields accepted in `target.metadata` depend on `target.type`. The server val
 
 | Field | Required | Description |
 |---|---|---|
-| `command` | Yes* | Top-level CLI command (e.g. `auth`). |
-| `subcommand` | No | Subcommand (e.g. `setup`). |
+| `command` | **Yes** | Top-level CLI command (e.g. `deploy`). |
+| `subcommand` | No | Subcommand, which may be multi-word (e.g. `container run`). |
 | `cli_version` | No | CLI version string. |
+| `args` | No | Documented flags and args, e.g. `['--rm', '--network']`. When feedback is submitted with more than one, each flag becomes its own target. |
 
-\* Required by the server; omitting them will result in a validation error response.
+### Target attributes
+
+The `<inputbuffer-feedback>` element builds a target from `target-type` plus the metadata attributes for that type:
+
+| Attribute | Applies to | Maps to |
+|---|---|---|
+| `target-type` | all | `type` — `documentation`, `rest_endpoint`, or `cli_command` |
+| `target-page-url` | `documentation` | `page_url` — defaults to the current page URL |
+| `target-section-heading` | `documentation` | `section_heading` |
+| `target-doc-version` | `documentation` | `doc_version` |
+| `target-method` | `rest_endpoint` | `method` |
+| `target-path` | `rest_endpoint` | `path` |
+| `target-host` | `rest_endpoint` | `host` |
+| `target-api-version` | `rest_endpoint` | `api_version` |
+| `target-command` | `cli_command` | `command` |
+| `target-subcommand` | `cli_command` | `subcommand` |
+| `target-cli-version` | `cli_command` | `cli_version` |
+| `target-args` | `cli_command` | `args` — comma-separated |
+
+Because `target-page-url` defaults to `window.location.href`, rating the current docs page needs one attribute:
+
+```html
+<inputbuffer-feedback api-key="ibw_YOUR_WIDGET_TOKEN" target-type="documentation"></inputbuffer-feedback>
+```
+
+An endpoint reference needs its identifying fields spelled out:
+
+```html
+<inputbuffer-feedback
+  api-key="ibw_YOUR_WIDGET_TOKEN"
+  target-type="rest_endpoint"
+  target-method="POST"
+  target-path="/v1/uploads">
+</inputbuffer-feedback>
+```
+
+If a required attribute is missing the widget logs a warning and drops the target rather than sending a request the server would reject.
+
+---
+
+## Errors
+
+API errors arrive as [RFC 7807 Problem Details](https://inputbuffer.io/docs/api/problems). The `error` event hands you an `ApiError` with `type`, `title`, `status`, `detail`, `category`, and (on validation failures) `field`. Switch on `type` rather than `status` — several types share a status code.
+
+`category` decides what the user sees:
+
+- **`user`** — they sent something the API rejected. `detail` is written for them and is shown in the form as-is.
+- **`integration`** — your embed is misconfigured. The user sees a generic message, and the widget logs the real reason to the browser console.
+
+| Problem type | Status | What went wrong |
+|---|---|---|
+| `unauthorized`, `invalid-token`, `invalid-token-format` | 401 | The token is missing, malformed, or revoked. |
+| `widget-token-restricted` | 403 | A full-access `ib_…` token was used from a browser. Use a widget `ibw_…` token. |
+| `forbidden-origin` | 403 | This page's origin isn't on the token's allowlist. |
+| `usage-limit-reached` | 402 | The organization hit its lifetime feedback limit. |
+| `missing-required-field`, `invalid-field-value` | 422 | A field is missing or invalid; `field` names it. |
+| `rate-limited` | 429 | Too many requests. |
+| `internal-error` | 500 | Something failed on InputBuffer's end. |
+
+```js
+ib.on('error', (err) => {
+    if (err.name === 'ApiError' && err.category === 'integration') {
+        console.error('Fix your embed:', err.type, err.detail);
+    }
+});
+```
+
+Network failures and the 10-second request timeout surface as ordinary `Error`s, not `ApiError`s.
 
 ---
 
@@ -478,7 +583,7 @@ Each component uses stable selectors you can target directly in your stylesheet.
 | `#ib-modal-body` | — | Body area |
 | `#ib-title` | `.ib-modal-title` | Modal heading |
 | `#ib-textarea` | `.ib-modal-textarea` | Feedback text field |
-| `#ib-email` | `.ib-modal-email` | Email input |
+| `#ib-title-input` | `.ib-modal-title-input` | Optional title input |
 | `#ib-submit` | `.ib-modal-submit` | Submit button |
 | `#ib-close` | `.ib-modal-close` | Close button |
 | `#ib-success` | `.ib-modal-success` | Success message |
@@ -499,7 +604,7 @@ The IDs are the stable public API and will not change between releases. The `.ib
 | `.ib-bar-body` | Popover body |
 | `.ib-bar-title` | Popover heading |
 | `.ib-bar-textarea` | Feedback text field |
-| `.ib-bar-email` | Email input |
+| `.ib-bar-title-input` | Optional title input |
 | `.ib-bar-submit` | Submit button |
 | `.ib-bar-success` | Success message |
 | `.ib-bar-error` | Error message |
@@ -537,8 +642,6 @@ document.getElementById('feedback-btn').addEventListener('click', () => {
         title: 'Was this page helpful?',
         target: {
             type: 'documentation',
-            targetId: window.location.pathname,
-            displayName: document.title,
             metadata: {
                 page_url: window.location.href,
                 section_heading: document.querySelector('h1')?.textContent ?? '',
@@ -557,8 +660,6 @@ const ib = InputBufferIO.createModal({ apiKey: 'YOUR_WIDGET_TOKEN' });
 ib.open({
     target: {
         type: 'rest_endpoint',
-        targetId: 'POST /v1/uploads',
-        displayName: 'Upload a file',
         metadata: { method: 'POST', path: '/v1/uploads' },
     },
 });
@@ -573,8 +674,6 @@ const ib = InputBufferIO.createModal({ apiKey: 'YOUR_WIDGET_TOKEN' });
 ib.open({
     target: {
         type: 'cli_command',
-        targetId: 'deploy',
-        displayName: 'my-cli deploy',
         metadata: { command: 'deploy' },
     },
 });
@@ -638,26 +737,31 @@ document.getElementById('my-slot').appendChild(bar.element);
 </script>
 ```
 
-## `source` vs `target`
+### Identify who submitted feedback
 
-These are two separate concepts:
+`submittedBy` is an opaque string — your own user id, or an anonymous token. It's stored exactly as sent and never parsed, so prefer an id over an email address.
 
-- **`source`** — *where* your widget is deployed. Identifies the platform or product surface, 
-  e.g. `"website"`, `"ios-app"`, `"chrome-extension"`. Use this to filter feedback by deployment 
-  environment in your dashboard.
-
-- **`target`** — *what* the feedback is about. A structured object describing the specific content 
-  or feature, e.g. a REST endpoint, a docs page, or a CLI command. Use this to group feedback by 
-  the thing being reviewed, regardless of where the widget is embedded.
-
-You can use both together:
 ```js
 InputBufferIO.createBar({
-    apiKey: 'YOUR_WIDGET_TOKEN',
-    source: 'website',
-    target: { type: 'documentation', metadata: { page_slug: 'getting-started' } },
+    apiKey: 'ibw_YOUR_WIDGET_TOKEN',
+    target: { type: 'documentation', metadata: { page_url: window.location.href } },
+    submittedBy: currentUser.id,  // attached to submitted feedback
+    userId: currentUser.id,       // deduplicates thumb votes
 });
+```
 
+`submittedBy` and `userId` do different jobs and can hold the same value. `submittedBy` records who wrote a piece of feedback; `userId` holds each person to one reaction per target for all time. Without `userId`, reactions fall back to one per target per IP address every 24 hours, which is best-effort — people behind a shared network can overwrite each other.
+
+### Point the widget at a local API
+
+```js
+InputBufferIO.createModal({
+    apiKey: 'ibw_YOUR_WIDGET_TOKEN',
+    apiUrl: 'http://localhost:8080',
+});
+```
+
+`apiUrl` is a base origin, not an endpoint. The widget appends `/api/v0/feedback` and `/api/v0/reactions` itself.
 
 ---
 

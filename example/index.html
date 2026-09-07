@@ -512,12 +512,9 @@
                     </div>
                 </div>
                 <div class="field">
-                    <span class="field-label">showEmailField</span>
+                    <span class="field-label">submittedBy</span>
                     <div class="field-value">
-                        <div class="tog" id="tog-show-email-bar">
-                            <button data-val="false" class="active">off</button>
-                            <button data-val="true">on</button>
-                        </div>
+                        <input type="text" id="ctrl-submitted-by-bar" placeholder="(optional) e.g. user_12345">
                     </div>
                 </div>
             </div>
@@ -644,12 +641,9 @@
                     </div>
                 </div>
                 <div class="field">
-                    <span class="field-label">showEmailField</span>
+                    <span class="field-label">submittedBy</span>
                     <div class="field-value">
-                        <div class="tog" id="tog-show-email">
-                            <button data-val="false" class="active">off</button>
-                            <button data-val="true">on</button>
-                        </div>
+                        <input type="text" id="ctrl-submitted-by" placeholder="(optional) e.g. user_12345">
                     </div>
                 </div>
                 <div class="field">
@@ -740,12 +734,6 @@
                     <span class="field-label">prefill text</span>
                     <div class="field-value">
                         <input type="text" id="ctrl-open-prefill" value="" placeholder="(none)">
-                    </div>
-                </div>
-                <div class="field">
-                    <span class="field-label">prefill email</span>
-                    <div class="field-value">
-                        <input type="text" id="ctrl-open-prefill-email" value="" placeholder="(none)">
                     </div>
                 </div>
                 <div class="field">
@@ -853,7 +841,7 @@
 <script>
     const IS_PRODUCTION = window.location.hostname === 'inputbuffer.io';
     const apiKey = 'YOUR_API_KEY';
-    const PROD_API_URL = 'https://inputbuffer.io/api/v0/inputs';
+    const PROD_API_URL = 'https://inputbuffer.io';
     const apiUrl = PROD_API_URL;
 
     const PRIMARY_LIGHT = '#6366f1';
@@ -883,7 +871,7 @@
         modalTitle: '',
         modalPlaceholder: '',
         showTitleField: false,
-        showEmailField: false,
+        submittedBy: '',
         forceError: false,
         apiUrl: '',
         target: { type: '',
@@ -903,11 +891,10 @@
         title: '',
         placeholder: '',
         showTitleField: false,
-        showEmailField: false,
+        submittedBy: '',
         showSentiment: false,
         openTitle: '',
         openPrefill: '',
-        openPrefillEmail: '',
         openSentiment: '',
         forceError: false,
         apiUrl: '',
@@ -946,7 +933,13 @@
             if (t.subcommand)  meta.subcommand  = t.subcommand;
             if (t.cli_version) meta.cli_version = t.cli_version;
         }
-        if (Object.keys(meta).length) spec.metadata = meta;
+        // The API requires each type's identifying fields, so an incomplete target is dropped
+        // rather than sent for the server to reject with a 422.
+        const required = t.type === 'documentation' ? ['page_url']
+                       : t.type === 'rest_endpoint' ? ['method', 'path']
+                       : ['command'];
+        if (required.some(k => !meta[k])) return null;
+        spec.metadata = meta;
         return spec;
     }
 
@@ -963,7 +956,7 @@
         if (barState.modalTitle)       cfg.modalTitle       = barState.modalTitle;
         if (barState.modalPlaceholder) cfg.modalPlaceholder = barState.modalPlaceholder;
         if (barState.showTitleField)   cfg.showTitleField   = true;
-        if (barState.showEmailField)   cfg.showEmailField   = true;
+        if (barState.submittedBy)      cfg.submittedBy      = barState.submittedBy;
         const target = buildTargetSpec(barState.target);
         if (target) cfg.target = target;
         return cfg;
@@ -975,12 +968,12 @@
             apiUrl: modalState.forceError ? 'http://localhost:0/fail' : (modalState.apiUrl || apiUrl),
             theme: buildTheme(modalState),
             showTitleField: modalState.showTitleField,
-            showEmailField: modalState.showEmailField,
             showSentiment:  modalState.showSentiment,
         };
         if (modalState.colorScheme !== 'auto') cfg.colorScheme = modalState.colorScheme;
         if (modalState.title)       cfg.title       = modalState.title;
         if (modalState.placeholder) cfg.placeholder = modalState.placeholder;
+        if (modalState.submittedBy) cfg.submittedBy = modalState.submittedBy;
         return cfg;
     }
 
@@ -1019,10 +1012,8 @@
         modalInst.on('error',  e  => logEvent('modal', 'error', e.message));
         const opts = {};
         if (modalState.openTitle) opts.title = modalState.openTitle;
-        if (modalState.openPrefill || modalState.openPrefillEmail) {
-            opts.prefill = {};
-            if (modalState.openPrefill)      opts.prefill.description = modalState.openPrefill;
-            if (modalState.openPrefillEmail) opts.prefill.email       = modalState.openPrefillEmail;
+        if (modalState.openPrefill) {
+            opts.prefill = { description: modalState.openPrefill };
         }
         if (modalState.openSentiment) opts.sentiment = modalState.openSentiment;
         const target = buildTargetSpec(modalState.target);
@@ -1116,15 +1107,37 @@
         const s2 = barState;
         let s = '<script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/bar.js"><\\/script>\n\n';
         s += '<inputbuffer-feedback';
-        s += htmlAttr('api-key', 'YOUR_API_KEY');
+        s += htmlAttr('api-key', 'YOUR_WIDGET_TOKEN');
         s += htmlAttr('label', s2.label);
+        if (!s2.showLabel)             s += htmlAttr('show-label', 'false');
         if (s2.placement !== 'inline') s += htmlAttr('placement', s2.placement);
+        if (s2.colorScheme !== 'auto') s += htmlAttr('color-scheme', s2.colorScheme);
+        if (s2.modalTitle)             s += htmlAttr('modal-title', s2.modalTitle);
+        if (s2.modalPlaceholder)       s += htmlAttr('modal-placeholder', s2.modalPlaceholder);
+        if (s2.showTitleField)         s += htmlAttr('show-title-field', 'true');
+        if (s2.submittedBy)            s += htmlAttr('submitted-by', s2.submittedBy);
+        s += genTargetAttrs(s2.target);
         s += htmlAttr('theme-primary', s2.primary);
         if (s2.background.enabled)    s += htmlAttr('theme-background',    s2.background.value);
         if (s2.text.enabled)          s += htmlAttr('theme-text',          s2.text.value);
         if (s2.selected.enabled)      s += htmlAttr('theme-selected',      s2.selected.value);
         if (s2.selectedColor.enabled) s += htmlAttr('theme-selected-color',s2.selectedColor.value);
         s += '>\n</inputbuffer-feedback>';
+        return s;
+    }
+
+    // Metadata keys map to attributes by kebab-casing them and prefixing `target-`.
+    function genTargetAttrs(t) {
+        if (!t.type) return '';
+        let s = htmlAttr('target-type', t.type);
+        const metaKeys = t.type === 'documentation'
+            ? ['page_url','section_heading','doc_version']
+            : t.type === 'rest_endpoint'
+            ? ['method','path','host','api_version']
+            : ['command','subcommand','cli_version'];
+        for (const k of metaKeys) {
+            if (t[k]) s += htmlAttr(`target-${k.replace(/_/g, '-')}`, t[k]);
+        }
         return s;
     }
 
@@ -1142,7 +1155,7 @@
         if (s.modalTitle)       lines.push(`    modalTitle: ${q(s.modalTitle)},`);
         if (s.modalPlaceholder) lines.push(`    modalPlaceholder: ${q(s.modalPlaceholder)},`);
         if (s.showTitleField)   lines.push(`    showTitleField: true,`);
-        if (s.showEmailField)   lines.push(`    showEmailField: true,`);
+        if (s.submittedBy)      lines.push(`    submittedBy: '${s.submittedBy}',`);
         lines.push(...genTargetLines(s.target, 4));
         lines.push(`    theme: {`);
         lines.push(`        primary: ${q(s.primary)},`);
@@ -1176,7 +1189,7 @@
         if (s.modalTitle)       lines.push(`    modalTitle: ${q(s.modalTitle)},`);
         if (s.modalPlaceholder) lines.push(`    modalPlaceholder: ${q(s.modalPlaceholder)},`);
         if (s.showTitleField)   lines.push(`    showTitleField: true,`);
-        if (s.showEmailField)   lines.push(`    showEmailField: true,`);
+        if (s.submittedBy)      lines.push(`    submittedBy: '${s.submittedBy}',`);
         lines.push(...genTargetLines(s.target, 4));
         lines.push(`    theme: {`);
         lines.push(`        primary: ${q(s.primary)},`);
@@ -1221,7 +1234,7 @@
         if (s.title)            lines.push(`    title: ${q(s.title)},`);
         if (s.placeholder)      lines.push(`    placeholder: ${q(s.placeholder)},`);
         if (s.showTitleField)   lines.push(`    showTitleField: true,`);
-        if (s.showEmailField)   lines.push(`    showEmailField: true,`);
+        if (s.submittedBy)      lines.push(`    submittedBy: '${s.submittedBy}',`);
         if (s.showSentiment)    lines.push(`    showSentiment: true,`);
         if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
         lines.push(`    theme: {`);
@@ -1237,7 +1250,6 @@
         if (s.openTitle) openLines.push(`    title: ${q(s.openTitle)},`);
         const prefillParts = [];
         if (s.openPrefill)      prefillParts.push(`description: ${q(s.openPrefill)}`);
-        if (s.openPrefillEmail) prefillParts.push(`email: ${q(s.openPrefillEmail)}`);
         if (prefillParts.length) openLines.push(`    prefill: { ${prefillParts.join(', ')} },`);
         if (s.openSentiment) openLines.push(`    sentiment: ${q(s.openSentiment)},`);
         openLines.push(...genTargetLines(s.target, 4));
@@ -1267,7 +1279,7 @@
         if (s.title)            lines.push(`    title: ${q(s.title)},`);
         if (s.placeholder)      lines.push(`    placeholder: ${q(s.placeholder)},`);
         if (s.showTitleField)   lines.push(`    showTitleField: true,`);
-        if (s.showEmailField)   lines.push(`    showEmailField: true,`);
+        if (s.submittedBy)      lines.push(`    submittedBy: '${s.submittedBy}',`);
         if (s.showSentiment)    lines.push(`    showSentiment: true,`);
         if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
         lines.push(`    theme: {`);
@@ -1282,7 +1294,6 @@
         if (s.openTitle) openLines.push(`    title: ${q(s.openTitle)},`);
         const prefillParts = [];
         if (s.openPrefill)      prefillParts.push(`description: ${q(s.openPrefill)}`);
-        if (s.openPrefillEmail) prefillParts.push(`email: ${q(s.openPrefillEmail)}`);
         if (prefillParts.length) openLines.push(`    prefill: { ${prefillParts.join(', ')} },`);
         if (s.openSentiment) openLines.push(`    sentiment: ${q(s.openSentiment)},`);
         openLines.push(...genTargetLines(s.target, 4));
@@ -1385,7 +1396,7 @@
     wireText('ctrl-modal-title-bar',       barState, 'modalTitle');
     wireText('ctrl-modal-placeholder-bar', barState, 'modalPlaceholder');
     wireTog('tog-show-title-bar',          barState, 'showTitleField', asBool);
-    wireTog('tog-show-email-bar',          barState, 'showEmailField', asBool);
+    wireText('ctrl-submitted-by-bar',      barState, 'submittedBy');
     wireTog('tog-force-error-bar',   barState,   'forceError', asBool);
     wireTog('tog-force-error-modal', modalState, 'forceError', asBool);
 
@@ -1404,11 +1415,10 @@
     wireText('ctrl-title',       modalState, 'title');
     wireText('ctrl-placeholder', modalState, 'placeholder');
     wireTog('tog-show-title',     modalState, 'showTitleField', asBool);
-    wireTog('tog-show-email',     modalState, 'showEmailField', asBool);
+    wireText('ctrl-submitted-by',  modalState, 'submittedBy');
     wireTog('tog-show-sentiment', modalState, 'showSentiment',  asBool);
     wireText('ctrl-open-title',         modalState, 'openTitle');
     wireText('ctrl-open-prefill',       modalState, 'openPrefill');
-    wireText('ctrl-open-prefill-email', modalState, 'openPrefillEmail');
     wireTog('tog-open-sentiment', modalState, 'openSentiment');
 
     // ── Target controls ───────────────────────────────────────────────────

@@ -3,10 +3,11 @@ import { createFeedbackBar } from './bar.js';
 
 vi.mock('./api.js', () => ({
     submitFeedback: vi.fn(),
+    submitReaction: vi.fn(),
     WIDGET_VERSION: '1.0.0',
 }));
 
-import { submitFeedback } from './api.js';
+import { submitFeedback, submitReaction } from './api.js';
 
 const flushMicrotasks = () => Promise.resolve().then(() => Promise.resolve());
 
@@ -14,6 +15,13 @@ describe('createFeedbackBar', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
         vi.clearAllMocks();
+        // Reactions are fire-and-forget, so the bar chains .catch() onto the returned promise.
+        vi.mocked(submitReaction).mockResolvedValue({
+            id: 'rx_1',
+            target: { id: 'tg_1', type: 'documentation', display_name: '/docs', metadata: { page_url: '/docs' } },
+            reaction_value: 1,
+            created_at: '2026-05-12T14:30:00Z',
+        });
     });
 
     describe('DOM structure', () => {
@@ -90,16 +98,10 @@ describe('createFeedbackBar', () => {
             expect((bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).placeholder).toBe('Enter your thoughts');
         });
 
-        it('hides email field by default', () => {
+        it('never renders an email field', () => {
             const bar = createFeedbackBar({ apiKey: 'key' });
             document.body.appendChild(bar.element);
             expect(bar.element.querySelector('.ib-bar-email')).toBeNull();
-        });
-
-        it('shows email field when showEmailField is true', () => {
-            const bar = createFeedbackBar({ apiKey: 'key', showEmailField: true });
-            document.body.appendChild(bar.element);
-            expect(bar.element.querySelector('.ib-bar-email')).not.toBeNull();
         });
     });
 
@@ -135,6 +137,49 @@ describe('createFeedbackBar', () => {
             downBtn.click();
             expect(upBtn.classList.contains('ib-bar-btn--active')).toBe(false);
             expect(downBtn.classList.contains('ib-bar-btn--active')).toBe(true);
+        });
+    });
+
+    describe('reactions', () => {
+        const target = { type: 'documentation', metadata: { page_url: '/docs' } } as const;
+
+        it('records a thumbs-up as reaction_value 1 when a target is configured', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', target });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
+            expect(submitReaction).toHaveBeenCalledWith('key', 1, target, null, undefined);
+        });
+
+        it('records a thumbs-down as reaction_value -1', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', target });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--down')!.click();
+            expect(submitReaction).toHaveBeenCalledWith('key', -1, target, null, undefined);
+        });
+
+        it('forwards userId and apiUrl', () => {
+            const bar = createFeedbackBar({
+                apiKey: 'key', target, userId: 'user_12345', apiUrl: 'http://localhost:8080',
+            });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
+            expect(submitReaction).toHaveBeenCalledWith('key', 1, target, 'user_12345', 'http://localhost:8080');
+        });
+
+        it('does not call the reactions API without a target', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
+            expect(submitReaction).not.toHaveBeenCalled();
+        });
+
+        it('still opens the popover when the reaction request fails', async () => {
+            vi.mocked(submitReaction).mockRejectedValue(new Error('network'));
+            const bar = createFeedbackBar({ apiKey: 'key', target });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
+            await flushMicrotasks();
+            expect(bar.element.querySelector('.ib-bar-popover')!.classList.contains('ib-bar-popover--visible')).toBe(true);
         });
     });
 
@@ -186,7 +231,7 @@ describe('createFeedbackBar', () => {
             expect(submitFeedback).not.toHaveBeenCalled();
         });
 
-        it('calls submitFeedback with apiKey, description, sentiment, and null email', async () => {
+        it('calls submitFeedback with apiKey, description, title, and sentiment', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
             const bar = createFeedbackBar({ apiKey: 'my-key' });
             document.body.appendChild(bar.element);
@@ -194,7 +239,7 @@ describe('createFeedbackBar', () => {
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', null, null, expect.objectContaining({ sentiment: 'positive' }), undefined);
+            expect(submitFeedback).toHaveBeenCalledWith('my-key', 'This is valid feedback', null, expect.objectContaining({ sentiment: 'positive' }), undefined);
         });
 
         it('passes negative sentiment when down button was clicked', async () => {
@@ -205,30 +250,29 @@ describe('createFeedbackBar', () => {
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toMatchObject({ sentiment: 'negative' });
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ sentiment: 'negative' });
         });
 
-        it('passes email when entered', async () => {
+        it('passes submittedBy when configured', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            const bar = createFeedbackBar({ apiKey: 'key', showEmailField: true });
+            const bar = createFeedbackBar({ apiKey: 'key', submittedBy: 'user_12345' });
             document.body.appendChild(bar.element);
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
-            (bar.element.querySelector('.ib-bar-email') as HTMLInputElement).value = 'user@example.com';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(vi.mocked(submitFeedback).mock.calls[0][2]).toBe('user@example.com');
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ submittedBy: 'user_12345' });
         });
 
         it('passes apiUrl to submitFeedback', async () => {
             vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
-            const bar = createFeedbackBar({ apiKey: 'key', apiUrl: 'https://custom.api/inputs' });
+            const bar = createFeedbackBar({ apiKey: 'key', apiUrl: 'http://localhost:8080' });
             document.body.appendChild(bar.element);
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
             (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
-            expect(vi.mocked(submitFeedback).mock.calls[0][5]).toBe('https://custom.api/inputs');
+            expect(vi.mocked(submitFeedback).mock.calls[0][4]).toBe('http://localhost:8080');
         });
 
         it('shows success message after successful submit', async () => {

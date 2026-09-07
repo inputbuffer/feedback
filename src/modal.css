@@ -99,9 +99,7 @@
 }
 
 #ib-modal-body #ib-title-input,
-#ib-modal-body .ib-modal-title-input,
-#ib-modal-body #ib-email,
-#ib-modal-body .ib-modal-email {
+#ib-modal-body .ib-modal-title-input {
     width: 100%;
     background: var(--ib-background);
     border: 1px solid var(--ib-border);
@@ -120,22 +118,13 @@
     margin-bottom: 10px;
 }
 
-#ib-email,
-.ib-modal-email {
-    margin-top: 10px;
-}
-
 #ib-modal-body #ib-title-input:hover,
-#ib-modal-body .ib-modal-title-input:hover,
-#ib-modal-body #ib-email:hover,
-#ib-modal-body .ib-modal-email:hover {
+#ib-modal-body .ib-modal-title-input:hover {
     border-color: var(--ib-input-hover-border);
 }
 
 #ib-modal-body #ib-title-input:focus,
-#ib-modal-body .ib-modal-title-input:focus,
-#ib-modal-body #ib-email:focus,
-#ib-modal-body .ib-modal-email:focus {
+#ib-modal-body .ib-modal-title-input:focus {
     border-color: var(--ib-focus-color);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--ib-focus-color) 15%, transparent);
 }

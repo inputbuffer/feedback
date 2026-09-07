@@ -1,6 +1,6 @@
-import { ApiError } from './types.js';
 import type { FeedbackBarConfig, FeedbackBarInstance } from './types.js';
 import { submitFeedback, submitReaction } from './api.js';
+import { userFacingMessage } from './errors.js';
 
 function svgIcon(path: string): SVGElement {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -124,6 +124,7 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
     const textarea = document.createElement('textarea');
     textarea.className = 'ib-bar-textarea';
     textarea.placeholder = config.modalPlaceholder ?? "What's on your mind?";
+    textarea.maxLength = 5000;
     textarea.setAttribute('aria-label', 'Feedback');
 
     const errorEl = document.createElement('p');
@@ -142,21 +143,12 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
         titleInput.type = 'text';
         titleInput.className = 'ib-bar-title-input';
         titleInput.placeholder = 'Title (optional)';
+        titleInput.maxLength = 500;
         titleInput.setAttribute('aria-label', 'Feedback title');
         popoverBody.appendChild(titleInput);
     }
 
     popoverBody.appendChild(textarea);
-
-    if (config.showEmailField === true) {
-        const emailInput = document.createElement('input');
-        emailInput.type = 'email';
-        emailInput.className = 'ib-bar-email';
-        emailInput.placeholder = 'Your email (optional)';
-        emailInput.setAttribute('aria-label', 'Email address');
-        popoverBody.appendChild(emailInput);
-    }
-
     popoverBody.appendChild(errorEl);
     popoverBody.appendChild(successEl);
 
@@ -241,13 +233,15 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
 
         const titleInput = popover.querySelector<HTMLInputElement>('.ib-bar-title-input');
         const title = titleInput?.value.trim() || null;
-        const emailInput = popover.querySelector<HTMLInputElement>('.ib-bar-email');
-        const email = emailInput?.value.trim() || null;
 
         try {
             const result = await submitFeedback(
-                config.apiKey, description, email, title,
-                { sentiment: currentSentiment, target: config.target, source: config.source },
+                config.apiKey, description, title,
+                {
+                    sentiment: currentSentiment,
+                    target: config.target,
+                    submittedBy: config.submittedBy,
+                },
                 config.apiUrl
             );
             emit('submit', result);
@@ -256,10 +250,7 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
             setTimeout(() => { closePopover(); clearSelection(); }, 2000);
         } catch (err) {
             emit('error', err instanceof Error ? err : new Error('Something went wrong.'));
-            const userMessage = err instanceof ApiError && err.category === 'user'
-                ? err.detail
-                : 'Something went wrong. Please try again.';
-            errorEl.textContent = userMessage;
+            errorEl.textContent = userFacingMessage(err);
             submitBtn.disabled = false;
             submitBtn.textContent = 'Send feedback';
         }

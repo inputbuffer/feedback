@@ -1,7 +1,7 @@
-import { ApiError } from './types.js';
 import type { WidgetConfig, OpenOptions } from './types.js';
 import { applyTheme } from './theme.js';
 import { submitFeedback } from './api.js';
+import { userFacingMessage } from './errors.js';
 
 type SubmitHandler = (result: { id: string }) => void;
 type CloseHandler = () => void;
@@ -34,7 +34,6 @@ export function createModal(config: WidgetConfig) {
     // Closure refs to DOM elements — set by buildDOM, cleared by close
     let textareaEl: HTMLTextAreaElement | null = null;
     let titleInputEl: HTMLInputElement | null = null;
-    let emailInputEl: HTMLInputElement | null = null;
     let submitBtnEl: HTMLButtonElement | null = null;
     let errorEl: HTMLElement | null = null;
     let successEl: HTMLElement | null = null;
@@ -91,15 +90,17 @@ export function createModal(config: WidgetConfig) {
         submitBtnEl.textContent = 'Sending…';
 
         try {
-            const email = emailInputEl?.value.trim() || currentOptions?.prefill?.email || null;
             const title = titleInputEl?.value.trim() || null;
             const sentiment = currentSentiment ?? currentOptions?.sentiment;
             const result = await submitFeedback(
                 config.apiKey,
                 description,
-                email || null,
                 title,
-                { ...currentOptions, sentiment, source: currentOptions?.source ?? config.source },
+                {
+                    ...currentOptions,
+                    sentiment,
+                    submittedBy: currentOptions?.submittedBy ?? config.submittedBy,
+                },
                 config.apiUrl
             );
 
@@ -112,10 +113,7 @@ export function createModal(config: WidgetConfig) {
         } catch (err) {
             const error = err instanceof Error ? err : new Error('Unknown error');
             if (errorEl) {
-                const userMessage = err instanceof ApiError && err.category === 'user'
-                    ? err.detail
-                    : 'Something went wrong. Please try again.';
-                errorEl.textContent = userMessage;
+                errorEl.textContent = userFacingMessage(err);
                 errorEl.style.display = 'block';
             }
             errorHandlers.forEach(h => h(error));
@@ -202,6 +200,7 @@ export function createModal(config: WidgetConfig) {
         textareaEl.id = 'ib-textarea';
         textareaEl.className = 'ib-modal-textarea';
         textareaEl.placeholder = config.placeholder || 'What\'s on your mind?';
+        textareaEl.maxLength = 5000;
         textareaEl.setAttribute('aria-label', 'Feedback');
 
         submitBtnEl = document.createElement('button');
@@ -224,22 +223,12 @@ export function createModal(config: WidgetConfig) {
             titleInputEl.className = 'ib-modal-title-input';
             titleInputEl.type = 'text';
             titleInputEl.placeholder = 'Title (optional)';
+            titleInputEl.maxLength = 500;
             titleInputEl.setAttribute('aria-label', 'Feedback title');
             body.appendChild(titleInputEl);
         }
 
         body.appendChild(textareaEl);
-
-        if (config.showEmailField === true) {
-            emailInputEl = document.createElement('input');
-            emailInputEl.id = 'ib-email';
-            emailInputEl.className = 'ib-modal-email';
-            emailInputEl.type = 'email';
-            emailInputEl.placeholder = 'Your email (optional)';
-            emailInputEl.setAttribute('aria-label', 'Email address');
-            body.appendChild(emailInputEl);
-        }
-
         body.appendChild(errorEl);
         body.appendChild(successEl);
 
@@ -300,7 +289,6 @@ export function createModal(config: WidgetConfig) {
         }
 
         if (textareaEl && options?.prefill?.description) textareaEl.value = options.prefill.description;
-        if (emailInputEl && options?.prefill?.email) emailInputEl.value = options.prefill.email;
 
         textareaEl?.focus();
     }
@@ -316,7 +304,6 @@ export function createModal(config: WidgetConfig) {
         overlay = null;
         textareaEl = null;
         titleInputEl = null;
-        emailInputEl = null;
         submitBtnEl = null;
         errorEl = null;
         successEl = null;
