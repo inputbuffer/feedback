@@ -1,6 +1,7 @@
 import type { FeedbackBarConfig, FeedbackBarInstance } from './types.js';
 import { createFeedbackBar } from './bar.js';
 import { WIDGET_VERSION } from './api.js';
+import { barConfigFromElement, shouldInjectStyles } from './attrs.js';
 import cssText from './bar.css';
 
 function injectStyles(): void {
@@ -24,24 +25,9 @@ class InputBufferIOFeedbackElement extends HTMLElement {
         const apiKey = this.getAttribute('api-key');
         if (!apiKey) return;
 
-        const injectStylesAttr = this.getAttribute('inject-styles');
-        const shouldInject = injectStylesAttr === null ? true : injectStylesAttr !== 'false';
-        if (shouldInject) injectStyles();
+        if (shouldInjectStyles(this)) injectStyles();
 
-        const placement = this.getAttribute('placement');
-        this._bar = createFeedbackBar({
-            apiKey,
-            apiUrl: this.getAttribute('api-url') ?? undefined,
-            label: this.getAttribute('label') ?? undefined,
-            placement: placement === 'fixed' ? 'fixed' : 'inline',
-            theme: {
-                primary: this.getAttribute('theme-primary') ?? undefined,
-                background: this.getAttribute('theme-background') ?? undefined,
-                text: this.getAttribute('theme-text') ?? undefined,
-                selected: this.getAttribute('theme-selected') ?? undefined,
-                selectedColor: this.getAttribute('theme-selected-color') ?? undefined,
-            },
-        });
+        this._bar = createFeedbackBar(barConfigFromElement(this, apiKey));
         this.appendChild(this._bar.element);
     }
 
@@ -62,4 +48,10 @@ if (typeof window !== 'undefined') {
 }
 
 export type { FeedbackBarConfig, FeedbackBarInstance };
+export type {
+    TargetSpec, RestEndpointTarget, DocumentationTarget, CliCommandTarget,
+    TargetRef, ReactionResult, ProblemDetails, ProblemType,
+} from './types.js';
+// A class, so it is exported as a value: consumers need `err instanceof ApiError`.
+export { ApiError } from './types.js';
 export { InputBufferIO, createBar };

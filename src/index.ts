@@ -2,6 +2,7 @@ import type { WidgetConfig, OpenOptions, WidgetInstance, FeedbackBarConfig, Feed
 import { createModal as createModalInstance } from './modal.js';
 import { createFeedbackBar } from './bar.js';
 import { WIDGET_VERSION } from './api.js';
+import { barConfigFromElement, modalConfigFromScript, shouldInjectStyles } from './attrs.js';
 import modalCssText from './modal.css';
 import barCssText from './bar.css';
 
@@ -72,35 +73,9 @@ if (typeof HTMLElement !== 'undefined') {
             const apiKey = this.getAttribute('api-key');
             if (!apiKey) return;
 
-            const injectStylesAttr = this.getAttribute('inject-styles');
-            const shouldInject = injectStylesAttr === null ? true : injectStylesAttr !== 'false';
-            if (shouldInject) injectBarStyles();
+            if (shouldInjectStyles(this)) injectBarStyles();
 
-            const placement = this.getAttribute('placement');
-            const showLabelAttr = this.getAttribute('show-label');
-            const showTitleFieldAttr = this.getAttribute('show-title-field');
-            const showEmailFieldAttr = this.getAttribute('show-email-field');
-            this._bar = createFeedbackBar({
-                apiKey,
-                apiUrl: this.getAttribute('api-url') ?? undefined,
-                label: this.getAttribute('label') ?? undefined,
-                placement: placement === 'fixed' ? 'fixed' : 'inline',
-                colorScheme: (this.getAttribute('color-scheme') as FeedbackBarConfig['colorScheme']) ?? undefined,
-                showLabel: showLabelAttr === null ? undefined : showLabelAttr === 'true',
-                modalTitle: this.getAttribute('modal-title') ?? undefined,
-                modalPlaceholder: this.getAttribute('modal-placeholder') ?? undefined,
-                showTitleField: showTitleFieldAttr === null ? undefined : showTitleFieldAttr === 'true',
-                showEmailField: showEmailFieldAttr === null ? undefined : showEmailFieldAttr === 'true',
-                source: this.getAttribute('source') ?? undefined,
-                userId: this.getAttribute('user-id') ?? undefined,
-                theme: {
-                    primary: this.getAttribute('theme-primary') ?? undefined,
-                    background: this.getAttribute('theme-background') ?? undefined,
-                    text: this.getAttribute('theme-text') ?? undefined,
-                    selected: this.getAttribute('theme-selected') ?? undefined,
-                    selectedColor: this.getAttribute('theme-selected-color') ?? undefined,
-                },
-            });
+            this._bar = createFeedbackBar(barConfigFromElement(this, apiKey));
             this.appendChild(this._bar.element);
         }
 
@@ -124,25 +99,11 @@ if (typeof window !== 'undefined') {
 // Auto-init when data-api-key is present on the script tag
 (function autoInit() {
     if (typeof window === 'undefined') return;
-    const apiKey = _currentScript?.dataset.apiKey;
+    if (!_currentScript) return;
+    const apiKey = _currentScript.dataset.apiKey;
     if (!apiKey) return;
 
-    const injectStyles = _currentScript?.dataset.injectStyles;
-    const colorScheme = _currentScript?.dataset.colorScheme as WidgetConfig['colorScheme'] | undefined;
-    const instance = createModal({
-        apiKey,
-        apiUrl: _currentScript?.dataset.apiUrl,
-        attachTo: _currentScript?.dataset.attachTo,
-        injectStyles: injectStyles === undefined ? true : injectStyles !== 'false',
-        colorScheme,
-        theme: {
-            primary: _currentScript?.dataset.themePrimary,
-            background: _currentScript?.dataset.themeBackground,
-            text: _currentScript?.dataset.themeText,
-            selected: _currentScript?.dataset.themeSelected,
-            selectedColor: _currentScript?.dataset.themeSelectedColor,
-        },
-    });
+    const instance = createModal(modalConfigFromScript(_currentScript, apiKey));
 
     (InputBufferIO as Record<string, unknown>)['_defaultInstance'] = instance;
 })();
@@ -157,4 +118,10 @@ declare global {
 }
 
 export type { WidgetConfig, OpenOptions, WidgetInstance, FeedbackBarConfig, FeedbackBarInstance };
+export type {
+    TargetSpec, RestEndpointTarget, DocumentationTarget, CliCommandTarget,
+    TargetRef, ReactionResult, ProblemDetails, ProblemType,
+} from './types.js';
+// A class, so it is exported as a value: consumers need `err instanceof ApiError`.
+export { ApiError } from './types.js';
 export { InputBufferIO };

@@ -1,6 +1,6 @@
 {
     "name": "@inputbuffer/feedback",
-    "version": "0.2.0",
+    "version": "0.3.1",
     "description": "Collect feedback from any website with a single script tag.",
     "type": "module",
     "main": "dist/widget.js",
@@ -36,7 +36,7 @@
     },
     "devDependencies": {
         "@vitest/coverage-v8": "^4.1.4",
-        "esbuild": "0.25.0",
+        "esbuild": "0.28.2",
         "jsdom": "^29.0.2",
         "typescript": "^5.8.2",
         "vitest": "^4.1.4"
