@@ -61,4 +61,10 @@ const InputBufferIO = { createModal, version: WIDGET_VERSION };
 })();
 
 export type { WidgetConfig, OpenOptions, WidgetInstance };
+export type {
+    TargetSpec, RestEndpointTarget, DocumentationTarget, CliCommandTarget,
+    ProblemDetails, ProblemType,
+} from './types.js';
+// A class, so it is exported as a value: consumers need `err instanceof ApiError`.
+export { ApiError } from './types.js';
 export { InputBufferIO, createModal };

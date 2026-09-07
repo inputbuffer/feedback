@@ -118,4 +118,10 @@ declare global {
 }
 
 export type { WidgetConfig, OpenOptions, WidgetInstance, FeedbackBarConfig, FeedbackBarInstance };
+export type {
+    TargetSpec, RestEndpointTarget, DocumentationTarget, CliCommandTarget,
+    TargetRef, ReactionResult, ProblemDetails, ProblemType,
+} from './types.js';
+// A class, so it is exported as a value: consumers need `err instanceof ApiError`.
+export { ApiError } from './types.js';
 export { InputBufferIO };

@@ -557,9 +557,13 @@ API errors arrive as [RFC 7807 Problem Details](https://inputbuffer.io/docs/api/
 | `rate-limited` | 429 | Too many requests. |
 | `internal-error` | 500 | Something failed on InputBuffer's end. |
 
+`ApiError` is exported from every entry point, so you can narrow with `instanceof`:
+
 ```js
+import { ApiError } from '@inputbuffer/feedback/modal';
+
 ib.on('error', (err) => {
-    if (err.name === 'ApiError' && err.category === 'integration') {
+    if (err instanceof ApiError && err.category === 'integration') {
         console.error('Fix your embed:', err.type, err.detail);
     }
 });
