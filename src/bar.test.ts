@@ -14,6 +14,9 @@ const flushMicrotasks = () => Promise.resolve().then(() => Promise.resolve());
 describe('createFeedbackBar', () => {
     beforeEach(() => {
         document.body.innerHTML = '';
+        // Stored reactions are keyed on apiKey + pathname, which every test here shares, so
+        // without this a vote in one test restores itself in the next.
+        localStorage.clear();
         vi.clearAllMocks();
         // Reactions are fire-and-forget, so the bar chains .catch() onto the returned promise.
         vi.mocked(submitReaction).mockResolvedValue({
@@ -47,6 +50,59 @@ describe('createFeedbackBar', () => {
             const bar = createFeedbackBar({ apiKey: 'key', showLabel: false });
             document.body.appendChild(bar.element);
             expect(bar.element.querySelector('.ib-bar-label-area')).toBeNull();
+        });
+
+        it('renders thumb buttons by default', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            expect(bar.element.querySelector('.ib-bar-btn--up')).not.toBeNull();
+            expect(bar.element.querySelector('.ib-bar-btn--down')).not.toBeNull();
+            expect(bar.element.querySelector('.ib-bar-actions')).not.toBeNull();
+        });
+
+        it('hides thumb buttons when showThumbs is false', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            expect(bar.element.querySelector('.ib-bar-btn--up')).toBeNull();
+            expect(bar.element.querySelector('.ib-bar-btn--down')).toBeNull();
+            // An empty actions div would still paint its border-left as a stray hairline.
+            expect(bar.element.querySelector('.ib-bar-actions')).toBeNull();
+        });
+
+        it('renders the label area as a button when showThumbs is false', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false, label: 'Give feedback' });
+            document.body.appendChild(bar.element);
+            const labelArea = bar.element.querySelector('.ib-bar-label-area')!;
+            expect(labelArea).toBeInstanceOf(HTMLButtonElement);
+            expect((labelArea as HTMLButtonElement).type).toBe('button');
+            expect(labelArea.getAttribute('aria-haspopup')).toBe('dialog');
+            expect(labelArea.getAttribute('aria-expanded')).toBe('false');
+            expect(labelArea.className).toContain('ib-bar-label-area--trigger');
+            expect(labelArea.querySelector('.ib-bar-label')!.textContent).toBe('Give feedback');
+        });
+
+        it('keeps the label area a div when thumbs are shown', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            const labelArea = bar.element.querySelector('.ib-bar-label-area')!;
+            expect(labelArea.tagName).toBe('DIV');
+            expect(labelArea.className).not.toContain('ib-bar-label-area--trigger');
+        });
+
+        it('keeps the label and warns when showThumbs and showLabel are both false', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false, showLabel: false });
+            document.body.appendChild(bar.element);
+            expect(bar.element.querySelector('.ib-bar-label-area')).toBeInstanceOf(HTMLButtonElement);
+            expect(warn).toHaveBeenCalled();
+            warn.mockRestore();
+        });
+
+        it('does not warn when showThumbs is false and showLabel is unset', () => {
+            const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+            createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            expect(warn).not.toHaveBeenCalled();
+            warn.mockRestore();
         });
 
         it('adds fixed placement class', () => {
@@ -140,6 +196,64 @@ describe('createFeedbackBar', () => {
         });
     });
 
+    describe('label trigger', () => {
+        const visible = (bar: { element: HTMLElement }) =>
+            bar.element.querySelector('.ib-bar-popover')!.classList.contains('ib-bar-popover--visible');
+
+        it('clicking the label area opens the popover when thumbs are hidden', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!.click();
+            expect(visible(bar)).toBe(true);
+        });
+
+        it('clicking the label area again closes the popover', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            const labelArea = bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!;
+            labelArea.click();
+            labelArea.click();
+            expect(visible(bar)).toBe(false);
+        });
+
+        it('toggles aria-expanded', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            const labelArea = bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!;
+            labelArea.click();
+            expect(labelArea.getAttribute('aria-expanded')).toBe('true');
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            expect(labelArea.getAttribute('aria-expanded')).toBe('false');
+        });
+
+        it('emits open with an undefined sentiment', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            const opens: { sentiment?: 'positive' | 'negative' }[] = [];
+            bar.on('open', p => opens.push(p));
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!.click();
+            expect(opens).toHaveLength(1);
+            expect('sentiment' in opens[0]).toBe(true);
+            expect(opens[0].sentiment).toBeUndefined();
+        });
+
+        it('does not emit vote when the label area is clicked', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            const votes: unknown[] = [];
+            bar.on('vote', p => votes.push(p));
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!.click();
+            expect(votes).toEqual([]);
+        });
+
+        it('clicking the label area does nothing when thumbs are shown', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLElement>('.ib-bar-label-area')!.click();
+            expect(visible(bar)).toBe(false);
+        });
+    });
+
     describe('reactions', () => {
         const target = { type: 'documentation', metadata: { page_url: '/docs' } } as const;
 
@@ -171,6 +285,23 @@ describe('createFeedbackBar', () => {
             document.body.appendChild(bar.element);
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
             expect(submitReaction).not.toHaveBeenCalled();
+        });
+
+        it('does not record a reaction when the label trigger opens the popover', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', target, showThumbs: false });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!.click();
+            expect(submitReaction).not.toHaveBeenCalled();
+        });
+
+        it('restores a stored reaction on construction', () => {
+            localStorage.setItem(
+                `ib:reaction:key:${window.location.pathname}`,
+                JSON.stringify({ sentiment: 'positive', ts: Date.now() }),
+            );
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            expect(bar.element.querySelector('.ib-bar-btn--up')!.classList.contains('ib-bar-btn--active')).toBe(true);
         });
 
         it('still opens the popover when the reaction request fails', async () => {
@@ -251,6 +382,32 @@ describe('createFeedbackBar', () => {
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
             await flushMicrotasks();
             expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ sentiment: 'negative' });
+        });
+
+        it('submits with no sentiment when thumbs are hidden', async () => {
+            vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!.click();
+            (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
+            await flushMicrotasks();
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]!.sentiment).toBeUndefined();
+        });
+
+        it('ignores a stored reaction when thumbs are hidden', async () => {
+            localStorage.setItem(
+                `ib:reaction:key:${window.location.pathname}`,
+                JSON.stringify({ sentiment: 'positive', ts: Date.now() }),
+            );
+            vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-label-area')!.click();
+            (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
+            await flushMicrotasks();
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]!.sentiment).toBeUndefined();
         });
 
         it('passes submittedBy when configured', async () => {
@@ -369,6 +526,96 @@ describe('createFeedbackBar', () => {
         });
     });
 
+    describe('programmatic open/close', () => {
+        const target = { type: 'documentation', metadata: { page_url: '/docs' } } as const;
+        const visible = (bar: { element: HTMLElement }) =>
+            bar.element.querySelector('.ib-bar-popover')!.classList.contains('ib-bar-popover--visible');
+
+        it('open() shows the popover and emits open', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            const opens: { sentiment?: 'positive' | 'negative' }[] = [];
+            bar.on('open', p => opens.push(p));
+            bar.open();
+            expect(visible(bar)).toBe(true);
+            expect(opens).toHaveLength(1);
+        });
+
+        it('open(sentiment) sets the matching thumb active', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            bar.open('negative');
+            expect(bar.element.querySelector('.ib-bar-btn--down')!.classList.contains('ib-bar-btn--active')).toBe(true);
+            expect(bar.element.querySelector('.ib-bar-btn--up')!.classList.contains('ib-bar-btn--active')).toBe(false);
+            bar.open('positive');
+            expect(bar.element.querySelector('.ib-bar-btn--up')!.classList.contains('ib-bar-btn--active')).toBe(true);
+            expect(bar.element.querySelector('.ib-bar-btn--down')!.classList.contains('ib-bar-btn--active')).toBe(false);
+        });
+
+        it('open() does not record a reaction, emit vote, or persist', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', target });
+            document.body.appendChild(bar.element);
+            const votes: unknown[] = [];
+            bar.on('vote', p => votes.push(p));
+            bar.open('positive');
+            expect(submitReaction).not.toHaveBeenCalled();
+            expect(votes).toEqual([]);
+            expect(localStorage.length).toBe(0);
+        });
+
+        it('open(sentiment) then submitting sends that sentiment', async () => {
+            vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            bar.open('positive');
+            (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
+            await flushMicrotasks();
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ sentiment: 'positive' });
+        });
+
+        it('open() preserves an already-selected sentiment', async () => {
+            vi.mocked(submitFeedback).mockResolvedValue({ id: '1' });
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
+            document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+            bar.open();
+            (bar.element.querySelector('.ib-bar-textarea') as HTMLTextAreaElement).value = 'This is valid feedback';
+            bar.element.querySelector<HTMLButtonElement>('.ib-bar-submit')!.click();
+            await flushMicrotasks();
+            expect(vi.mocked(submitFeedback).mock.calls[0][3]).toMatchObject({ sentiment: 'positive' });
+        });
+
+        it('open() works when thumbs are hidden and sets aria-expanded', () => {
+            const bar = createFeedbackBar({ apiKey: 'key', showThumbs: false });
+            document.body.appendChild(bar.element);
+            bar.open();
+            expect(visible(bar)).toBe(true);
+            expect(bar.element.querySelector('.ib-bar-label-area')!.getAttribute('aria-expanded')).toBe('true');
+        });
+
+        it('close() hides the popover and emits close', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            let closed = false;
+            bar.on('close', () => { closed = true; });
+            bar.open();
+            bar.close();
+            expect(visible(bar)).toBe(false);
+            expect(closed).toBe(true);
+        });
+
+        it('close() on a closed popover does not emit close', () => {
+            const bar = createFeedbackBar({ apiKey: 'key' });
+            document.body.appendChild(bar.element);
+            let closed = false;
+            bar.on('close', () => { closed = true; });
+            bar.close();
+            expect(closed).toBe(false);
+        });
+    });
+
     describe('destroy', () => {
         it('removes the element from the DOM', () => {
             const bar = createFeedbackBar({ apiKey: 'key' });
@@ -406,7 +653,7 @@ describe('createFeedbackBar', () => {
             const bar = createFeedbackBar({ apiKey: 'key' });
             document.body.appendChild(bar.element);
             const opens: unknown[] = [];
-            bar.on('open', (p: { sentiment: 'positive' | 'negative' }) => opens.push(p));
+            bar.on('open', (p: { sentiment?: 'positive' | 'negative' }) => opens.push(p));
             bar.element.querySelector<HTMLButtonElement>('.ib-bar-btn--up')!.click();
             expect(opens).toEqual([{ sentiment: 'positive' }]);
         });

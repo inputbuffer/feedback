@@ -137,14 +137,14 @@ describe('InputBufferIO', () => {
         });
 
         it('createBar does not throw when document is undefined', () => {
-            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), destroy: vi.fn() });
+            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), open: vi.fn(), close: vi.fn(), destroy: vi.fn() });
             vi.stubGlobal('document', undefined);
             expect(() => InputBufferIO.createBar({ apiKey: 'k' })).not.toThrow();
         });
 
         it('createBar does not inject styles when document is undefined', () => {
             document.getElementById('ib-bar-styles')?.remove();
-            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), destroy: vi.fn() });
+            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), open: vi.fn(), close: vi.fn(), destroy: vi.fn() });
             vi.stubGlobal('document', undefined);
             InputBufferIO.createBar({ apiKey: 'k' });
             vi.unstubAllGlobals();
@@ -169,7 +169,7 @@ describe('InputBufferIO', () => {
 
         it('calls destroy on the bar instance when disconnected', () => {
             const destroyFn = vi.fn();
-            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: document.createElement('div'), on: vi.fn(), destroy: destroyFn });
+            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: document.createElement('div'), on: vi.fn(), open: vi.fn(), close: vi.fn(), destroy: destroyFn });
             const el = document.createElement('inputbuffer-feedback');
             el.setAttribute('api-key', 'key');
             document.body.appendChild(el);

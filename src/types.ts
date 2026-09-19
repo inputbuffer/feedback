@@ -133,6 +133,12 @@ export interface FeedbackBarConfig {
     apiUrl?: string;
     label?: string;
     showLabel?: boolean;
+    /**
+     * Thumbs up/down. When `false` the label area becomes a single button that opens the
+     * follow-up form with no sentiment, and no reaction is ever recorded. An explicit
+     * `showLabel: false` is ignored in that case, because the label is the only trigger left.
+     */
+    showThumbs?: boolean;
     placement?: 'fixed' | 'inline';
     colorScheme?: 'dark' | 'light' | 'auto';
     theme?: WidgetConfig['theme'];
@@ -149,10 +155,19 @@ export interface FeedbackBarConfig {
 
 export interface FeedbackBarInstance {
     element: HTMLElement;
-    on(event: 'vote' | 'open', handler: (payload: { sentiment: 'positive' | 'negative' }) => void): void;
+    on(event: 'vote', handler: (payload: { sentiment: 'positive' | 'negative' }) => void): void;
+    /** `sentiment` is absent when the popover was opened by the label trigger or a bare `open()`. */
+    on(event: 'open', handler: (payload: { sentiment?: 'positive' | 'negative' }) => void): void;
     on(event: 'submit', handler: (payload: { id: string }) => void): void;
     on(event: 'error', handler: (err: Error) => void): void;
     on(event: 'close', handler: () => void): void;
+    /**
+     * Opens the follow-up form. Purely a display action: it never records a reaction, writes to
+     * `localStorage`, or emits `vote`. Passing a sentiment selects that thumb; omitting it keeps
+     * whatever is already selected.
+     */
+    open(sentiment?: 'positive' | 'negative'): void;
+    close(): void;
     destroy(): void;
 }
 

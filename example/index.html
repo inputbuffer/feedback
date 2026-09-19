@@ -142,6 +142,7 @@
             white-space: nowrap;
         }
         .tog button.active { background: #fff; color: #111827; box-shadow: 0 1px 2px rgba(0,0,0,0.08); }
+        .tog[data-disabled] { opacity: 0.45; pointer-events: none; }
 
         .color-ctrl { display: flex; align-items: center; gap: 5px; }
         input[type="color"] {
@@ -407,6 +408,15 @@
                     <span class="field-label">showLabel</span>
                     <div class="field-value">
                         <div class="tog" id="tog-show-label">
+                            <button data-val="true" class="active">on</button>
+                            <button data-val="false">off</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="field">
+                    <span class="field-label">showThumbs</span>
+                    <div class="field-value">
+                        <div class="tog" id="tog-show-thumbs">
                             <button data-val="true" class="active">on</button>
                             <button data-val="false">off</button>
                         </div>
@@ -858,8 +868,9 @@
 
     // ── State ─────────────────────────────────────────────────────────────
     const barState = {
-        label: 'Was this helpful?',
+        label: 'Give Feedback',
         showLabel: true,
+        showThumbs: true,
         placement: 'inline',
         colorScheme: 'auto',
         primary: PRIMARY_LIGHT,
@@ -949,6 +960,7 @@
             apiUrl: barState.forceError ? 'http://localhost:0/fail' : (barState.apiUrl || apiUrl),
             label: barState.label,
             showLabel: barState.showLabel,
+            showThumbs: barState.showThumbs,
             placement: barState.placement,
             theme: buildTheme(barState),
         };
@@ -1110,6 +1122,7 @@
         s += htmlAttr('api-key', 'YOUR_WIDGET_TOKEN');
         s += htmlAttr('label', s2.label);
         if (!s2.showLabel)             s += htmlAttr('show-label', 'false');
+        if (!s2.showThumbs)            s += htmlAttr('show-thumbs', 'false');
         if (s2.placement !== 'inline') s += htmlAttr('placement', s2.placement);
         if (s2.colorScheme !== 'auto') s += htmlAttr('color-scheme', s2.colorScheme);
         if (s2.modalTitle)             s += htmlAttr('modal-title', s2.modalTitle);
@@ -1150,6 +1163,7 @@
         ];
         lines.push(`    label: ${q(s.label)},`);
         if (!s.showLabel)             lines.push(`    showLabel: false,`);
+        if (!s.showThumbs)            lines.push(`    showThumbs: false,`);
         if (s.placement !== 'inline') lines.push(`    placement: ${q(s.placement)},`);
         if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
         if (s.modalTitle)       lines.push(`    modalTitle: ${q(s.modalTitle)},`);
@@ -1184,6 +1198,7 @@
         ];
         lines.push(`    label: ${q(s.label)},`);
         if (!s.showLabel)             lines.push(`    showLabel: false,`);
+        if (!s.showThumbs)            lines.push(`    showThumbs: false,`);
         if (s.placement !== 'inline') lines.push(`    placement: ${q(s.placement)},`);
         if (s.colorScheme !== 'auto') lines.push(`    colorScheme: ${q(s.colorScheme)},`);
         if (s.modalTitle)       lines.push(`    modalTitle: ${q(s.modalTitle)},`);
@@ -1338,7 +1353,23 @@
         }
     }
 
+    // With no thumbs the label is the only trigger, so the widget ignores showLabel:false.
+    // Lock the control to match instead of letting the preview contradict the toggle.
+    function syncShowLabelControl() {
+        const tog = document.getElementById('tog-show-label');
+        if (barState.showThumbs) {
+            tog.removeAttribute('data-disabled');
+            return;
+        }
+        barState.showLabel = true;
+        tog.setAttribute('data-disabled', '');
+        tog.querySelectorAll('button[data-val]').forEach(b => {
+            b.classList.toggle('active', b.dataset.val === 'true');
+        });
+    }
+
     function applyState() {
+        syncShowLabelControl();
         rebuildBar();
         updateCode();
     }
@@ -1381,6 +1412,7 @@
     // Bar controls
     wireText('ctrl-label', barState, 'label');
     wireTog('tog-show-label',       barState, 'showLabel',  asBool);
+    wireTog('tog-show-thumbs',      barState, 'showThumbs', asBool);
     wireTog('tog-placement',        barState, 'placement');
     wireTog('tog-color-scheme-bar', barState, 'colorScheme');
     document.getElementById('ctrl-primary-bar').addEventListener('input', e => {
