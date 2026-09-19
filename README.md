@@ -11,6 +11,7 @@ This package is a lightweight embeddable widget you can drop into your documenta
 - [Quick start](#quick-start)
   - [Inline thumbs bar](#inline-thumbs-bar-web-component)
   - [Thumbs only](#thumbs-only-web-component)
+  - [Label only, no thumbs](#label-only-no-thumbs-web-component)
   - [Floating thumbs bar](#floating-thumbs-bar-web-component)
   - [Modal](#modal-script-tag)
   - [Verify it's working](#verify-its-working)
@@ -25,6 +26,8 @@ This package is a lightweight embeddable widget you can drop into your documenta
   - [Web component](#web-component)
   - [`createBar(config)`](#inputbufferiocreatebarconfig)
   - [`bar.on(event, handler)`](#baronevent-handler)
+  - [`bar.open(sentiment?)`](#baropensentiment)
+  - [`bar.close()`](#barclose)
   - [`bar.destroy()`](#bardestroy)
 - [Feedback modal](#feedback-modal)
   - [Script tag attributes](#script-tag-attributes-auto-init)
@@ -91,6 +94,24 @@ Omit the `label` attribute to show just the thumbs with no text:
 | Light | Dark |
 |---|---|
 | ![Thumbs light](example/thumbs-light.png) | ![Thumbs dark](example/thumbs-dark.png) |
+
+### Label only, no thumbs (web component)
+
+Set `show-thumbs="false"` when you want a plain "leave feedback" strip rather than a rating. The
+whole bar becomes a single button that opens the follow-up form, so give `label` an action-oriented
+wording. No sentiment is attached and no reaction is recorded:
+
+```html
+<script src="https://cdn.jsdelivr.net/npm/@inputbuffer/feedback/dist/bar.js"></script>
+
+<inputbuffer-feedback
+  api-key="YOUR_WIDGET_TOKEN"
+  label="Give feedback"
+  show-thumbs="false">
+</inputbuffer-feedback>
+```
+
+`show-label="false"` is ignored here — with the thumbs gone, the label is the only way in.
 
 ### Floating thumbs bar (web component)
 
@@ -262,6 +283,7 @@ Supported attributes:
 | `inject-styles` | Set to `"false"` to skip automatic style injection. |
 | `color-scheme` | `"light"`, `"dark"`, or `"auto"`. |
 | `show-label` | `"true"` to show the label, `"false"` to hide it. |
+| `show-thumbs` | `"true"` to show the thumbs (default), `"false"` to hide them and turn the whole bar into one button that opens the form. Ignores `show-label="false"`. |
 | `modal-title` | Title shown above the feedback textarea. |
 | `modal-placeholder` | Placeholder text for the feedback textarea. |
 | `show-title-field` | `"true"` to show an optional title input. |
@@ -298,7 +320,8 @@ document.getElementById('my-slot').appendChild(bar.element);
 | `apiKey` | string | — | **Required.** Your widget token (`ibw_…`). |
 | `apiUrl` | string | `'https://inputbuffer.io'` | API base origin. Paths are appended by the widget. |
 | `label` | string | — | Text shown next to the thumbs. |
-| `showLabel` | boolean | `true` | Set to `false` to show thumbs only. |
+| `showLabel` | boolean | `true` | Set to `false` to show thumbs only. Ignored when `showThumbs` is `false`. |
+| `showThumbs` | boolean | `true` | Set to `false` to hide the thumbs. The whole bar becomes one button that opens the form with no sentiment, and no reaction is recorded. |
 | `placement` | `'inline'` \| `'fixed'` | `'inline'` | `fixed` pins the bar to the bottom of the viewport. |
 | `colorScheme` | `'light'` \| `'dark'` \| `'auto'` | `'auto'` | Force a color scheme or follow the system setting. |
 | `theme.primary` | string | — | Primary color (buttons, focus rings). |
@@ -331,10 +354,28 @@ bar.on('error',  (err)           => console.error('Submission failed:', err));
 | Event | Handler signature | When it fires |
 |---|---|---|
 | `vote` | `({ sentiment: 'positive' \| 'negative' }) => void` | User clicks a thumb. If a `target` is configured, the reaction is recorded immediately via `POST /api/v0/reactions` (fire-and-forget — a failure never blocks the follow-up form). The selection is persisted in `localStorage` for 24 hours so it survives page reloads. |
-| `open` | `({ sentiment: 'positive' \| 'negative' }) => void` | The follow-up popover opens. |
+| `open` | `({ sentiment?: 'positive' \| 'negative' }) => void` | The follow-up popover opens. `sentiment` is absent when it was opened by the label trigger (`showThumbs: false`) or by a bare `open()`. |
 | `submit` | `({ id: string }) => void` | Feedback was submitted successfully. |
 | `close` | `() => void` | The follow-up popover closes. |
 | `error` | `(err: Error) => void` | The submission request failed. |
+
+### `bar.open(sentiment?)`
+
+Opens the follow-up form from your own UI. Pass `'positive'` or `'negative'` to select that thumb;
+omit the argument to keep whatever is already selected.
+
+```js
+bar.open();            // no sentiment (or the current one, if a thumb is selected)
+bar.open('negative');  // selects the thumbs-down
+```
+
+This is a display action only — unlike a real thumb click it does **not** record a reaction, write to
+`localStorage`, or emit `vote`. Use it to drive the bar from a custom trigger, for example alongside
+`showThumbs: false`.
+
+### `bar.close()`
+
+Closes the follow-up form. A no-op when it is already closed (no `close` event is emitted).
 
 ### `bar.destroy()`
 
@@ -601,7 +642,11 @@ The IDs are the stable public API and will not change between releases. The `.ib
 |---|---|
 | `.ib-bar-wrapper` | Outer wrapper (scopes all CSS variables) |
 | `.ib-bar` | The visible bar strip |
+| `.ib-bar-label-area` | Label container; a `<button>` when `showThumbs` is `false` |
+| `.ib-bar-label-area--trigger` | Added to the label container when it is the button that opens the form |
 | `.ib-bar-label` | Label text |
+| `.ib-bar-actions` | Thumb button group; absent when `showThumbs` is `false` |
+| `.ib-bar-actions--no-label` | Added to the thumb group when `showLabel` is `false` |
 | `.ib-bar-btn` | Thumb buttons |
 | `.ib-bar-popover` | Follow-up popover container |
 | `.ib-bar-header` | Popover header |

@@ -64,13 +64,13 @@ describe('bar-entry', () => {
 
     describe('SSR guards', () => {
         it('injectStyles does not throw when document is undefined', () => {
-            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), destroy: vi.fn() });
+            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), open: vi.fn(), close: vi.fn(), destroy: vi.fn() });
             vi.stubGlobal('document', undefined);
             expect(() => createBar({ apiKey: 'k' })).not.toThrow();
         });
 
         it('injectStyles does not inject styles when document is undefined', () => {
-            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), destroy: vi.fn() });
+            vi.mocked(createFeedbackBar).mockReturnValueOnce({ element: {} as HTMLElement, on: vi.fn(), open: vi.fn(), close: vi.fn(), destroy: vi.fn() });
             vi.stubGlobal('document', undefined);
             createBar({ apiKey: 'k' });
             vi.unstubAllGlobals();

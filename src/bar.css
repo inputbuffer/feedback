@@ -216,6 +216,43 @@
     user-select: none;
 }
 
+/* With showThumbs off the label area is the <button> that opens the form. Layout (display,
+ * flex, align-items, padding) comes from .ib-bar-label-area above — don't restate it here, or
+ * this later rule would clobber the display:flex that overrides the UA button layout. */
+.ib-bar-label-area--trigger {
+    -webkit-appearance: none;
+    appearance: none;
+    background: none;
+    border: none;
+    margin: 0;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.ib-bar-label-area--trigger .ib-bar-label {
+    transition: color 0.15s;
+}
+
+/* Lift to the raised surface rather than filling with --ib-primary: a full-bar-width primary
+ * fill is far heavier than the same fill on a 40px thumb, and in dark mode it lands as dark
+ * green on slightly-less-dark green. --ib-surface reads in both themes without a new color. */
+.ib-bar-label-area--trigger:hover {
+    background: var(--ib-surface);
+}
+
+.ib-bar-label-area--trigger:hover .ib-bar-label {
+    color: var(--ib-text);
+}
+
+/* :focus-visible rather than :focus as on .ib-bar-btn — an outline around the full-width bar
+ * after every mouse click is far more intrusive than one around a 40px thumb. */
+.ib-bar-label-area--trigger:focus-visible {
+    outline: 1px solid var(--ib-primary);
+    outline-offset: -1px;
+}
+
 .ib-bar-actions {
     display: flex;
     align-items: stretch;

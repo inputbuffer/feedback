@@ -1,6 +1,6 @@
 import type { FeedbackBarConfig, FeedbackBarInstance } from './types.js';
 import { submitFeedback, submitReaction } from './api.js';
-import { userFacingMessage } from './errors.js';
+import { userFacingMessage, warn } from './errors.js';
 
 function svgIcon(path: string): SVGElement {
     const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -68,36 +68,58 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
     if (theme.selected) wrapper.style.setProperty('--ib-selected', theme.selected);
     if (theme.selectedColor) wrapper.style.setProperty('--ib-selected-color', theme.selectedColor);
 
+    const showThumbs = config.showThumbs !== false;
+    // Without thumbs the label is the only way into the form, so it has to stay.
+    if (!showThumbs && config.showLabel === false) {
+        warn('showLabel: false is ignored when showThumbs is false — the label is the only way to open the feedback form.');
+    }
+    const showLabel = showThumbs ? config.showLabel !== false : true;
+
     // Bar
     const bar = document.createElement('div');
     bar.className = 'ib-bar';
 
-    const labelArea = document.createElement('div');
-    labelArea.className = 'ib-bar-label-area';
+    // With no thumbs to click, the label area itself becomes the button that opens the form.
+    let trigger: HTMLButtonElement | null = null;
+    let labelArea: HTMLElement;
+    if (showThumbs) {
+        labelArea = document.createElement('div');
+    } else {
+        trigger = document.createElement('button');
+        trigger.type = 'button';
+        trigger.setAttribute('aria-haspopup', 'dialog');
+        trigger.setAttribute('aria-expanded', 'false');
+        trigger.classList.add('ib-bar-label-area--trigger');
+        labelArea = trigger;
+    }
+    labelArea.classList.add('ib-bar-label-area');
+
     const label = document.createElement('span');
     label.className = 'ib-bar-label';
     label.textContent = config.label ?? 'Was this helpful?';
     labelArea.appendChild(label);
 
-    const actions = document.createElement('div');
-    actions.className = 'ib-bar-actions' + (config.showLabel === false ? ' ib-bar-actions--no-label' : '');
+    function thumbButton(variant: 'up' | 'down', ariaLabel: string, path: string): HTMLButtonElement {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `ib-bar-btn ib-bar-btn--${variant}`;
+        btn.setAttribute('aria-label', ariaLabel);
+        btn.appendChild(svgIcon(path));
+        return btn;
+    }
 
-    const upBtn = document.createElement('button');
-    upBtn.type = 'button';
-    upBtn.className = 'ib-bar-btn ib-bar-btn--up';
-    upBtn.setAttribute('aria-label', 'Yes');
-    upBtn.appendChild(svgIcon(THUMB_UP));
+    const upBtn = showThumbs ? thumbButton('up', 'Yes', THUMB_UP) : null;
+    const downBtn = showThumbs ? thumbButton('down', 'No', THUMB_DOWN) : null;
 
-    const downBtn = document.createElement('button');
-    downBtn.type = 'button';
-    downBtn.className = 'ib-bar-btn ib-bar-btn--down';
-    downBtn.setAttribute('aria-label', 'No');
-    downBtn.appendChild(svgIcon(THUMB_DOWN));
-
-    actions.appendChild(upBtn);
-    actions.appendChild(downBtn);
-    if (config.showLabel !== false) bar.appendChild(labelArea);
-    bar.appendChild(actions);
+    if (showLabel) bar.appendChild(labelArea);
+    // An empty actions div would still paint its border-left as a stray hairline, so skip it.
+    if (upBtn && downBtn) {
+        const actions = document.createElement('div');
+        actions.className = 'ib-bar-actions' + (showLabel ? '' : ' ib-bar-actions--no-label');
+        actions.appendChild(upBtn);
+        actions.appendChild(downBtn);
+        bar.appendChild(actions);
+    }
 
     // Popover
     const popover = document.createElement('div');
@@ -180,9 +202,10 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
     }
 
     // Popover open/close
-    function openPopover(sentiment: 'positive' | 'negative') {
+    function openPopover(sentiment?: 'positive' | 'negative') {
         currentSentiment = sentiment;
         popover.classList.add('ib-bar-popover--visible');
+        trigger?.setAttribute('aria-expanded', 'true');
         // Position after display:block takes effect so offsetHeight is accurate
         requestAnimationFrame(positionPopover);
         errorEl.textContent = '';
@@ -197,7 +220,12 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
 
     function closePopover() {
         if (!popover.classList.contains('ib-bar-popover--visible')) return;
+        // Move focus off the popover before it disappears, but only if it is in there — a
+        // programmatic close() must not steal focus from elsewhere on the page.
+        const returnFocus = trigger !== null && popover.contains(document.activeElement);
         popover.classList.remove('ib-bar-popover--visible');
+        trigger?.setAttribute('aria-expanded', 'false');
+        if (returnFocus) trigger!.focus();
         document.removeEventListener('click', handleOutsideClick);
         document.removeEventListener('keydown', handleKeydown);
         window.removeEventListener('scroll', positionPopover);
@@ -206,10 +234,14 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
         emit('close');
     }
 
+    function setActive(sentiment?: 'positive' | 'negative') {
+        upBtn?.classList.toggle('ib-bar-btn--active', sentiment === 'positive');
+        downBtn?.classList.toggle('ib-bar-btn--active', sentiment === 'negative');
+    }
+
     function clearSelection() {
-        upBtn.classList.remove('ib-bar-btn--active');
-        downBtn.classList.remove('ib-bar-btn--active');
         currentSentiment = undefined;
+        setActive(undefined);
     }
 
     function handleOutsideClick(e: MouseEvent) {
@@ -256,21 +288,19 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
         }
     }
 
-    function setActive(btn: HTMLButtonElement) {
-        upBtn.classList.remove('ib-bar-btn--active');
-        downBtn.classList.remove('ib-bar-btn--active');
-        btn.classList.add('ib-bar-btn--active');
+    // Only meaningful with thumbs on screen: a sentiment restored invisibly would attach itself
+    // to the next submission with no way for the user to see or change it.
+    if (showThumbs) {
+        const stored = loadStoredReaction();
+        if (stored) {
+            currentSentiment = stored;
+            setActive(stored);
+        }
     }
 
-    const stored = loadStoredReaction();
-    if (stored) {
-        currentSentiment = stored;
-        setActive(stored === 'positive' ? upBtn : downBtn);
-    }
-
-    function handleVote(sentiment: 'positive' | 'negative', btn: HTMLButtonElement) {
+    function handleVote(sentiment: 'positive' | 'negative') {
         saveReaction(sentiment);
-        setActive(btn);
+        setActive(sentiment);
         openPopover(sentiment);
         emit('vote', { sentiment });
         if (config.target) {
@@ -284,14 +314,30 @@ export function createFeedbackBar(config: FeedbackBarConfig): FeedbackBarInstanc
         }
     }
 
-    upBtn.addEventListener('click', () => handleVote('positive', upBtn));
-    downBtn.addEventListener('click', () => handleVote('negative', downBtn));
+    upBtn?.addEventListener('click', () => handleVote('positive'));
+    downBtn?.addEventListener('click', () => handleVote('negative'));
+    // Toggles rather than opens: handleOutsideClick ignores clicks inside the wrapper, so an
+    // open-only handler would let a second click re-open and wipe the form's error/success text.
+    trigger?.addEventListener('click', () => {
+        if (popover.classList.contains('ib-bar-popover--visible')) closePopover();
+        else openPopover(undefined);
+    });
     submitBtn.addEventListener('click', handleSubmit);
 
     return {
         element: wrapper,
         on(event, handler) {
             handlers[event]?.push(handler);
+        },
+        open(sentiment) {
+            // No argument means "leave the selection alone" — openPopover always assigns
+            // currentSentiment, so without this a bare open() would clear an existing vote.
+            const next = sentiment ?? currentSentiment;
+            setActive(next);
+            openPopover(next);
+        },
+        close() {
+            closePopover();
         },
         destroy() {
             closePopover();

@@ -106,6 +106,7 @@ export function barConfigFromElement(el: Element, apiKey: string): FeedbackBarCo
         apiUrl: optional(el, 'api-url'),
         label: optional(el, 'label'),
         showLabel: optionalBool(el, 'show-label'),
+        showThumbs: optionalBool(el, 'show-thumbs'),
         placement: el.getAttribute('placement') === 'fixed' ? 'fixed' : 'inline',
         colorScheme: optional(el, 'color-scheme') as FeedbackBarConfig['colorScheme'],
         modalTitle: optional(el, 'modal-title'),

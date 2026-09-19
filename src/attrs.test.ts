@@ -19,6 +19,7 @@ describe('barConfigFromElement', () => {
             'api-url': 'http://localhost:8080',
             'label': 'Was this helpful?',
             'show-label': 'false',
+            'show-thumbs': 'false',
             'placement': 'fixed',
             'color-scheme': 'dark',
             'modal-title': 'Tell us more',
@@ -35,6 +36,7 @@ describe('barConfigFromElement', () => {
             apiUrl: 'http://localhost:8080',
             label: 'Was this helpful?',
             showLabel: false,
+            showThumbs: false,
             placement: 'fixed',
             colorScheme: 'dark',
             modalTitle: 'Tell us more',
@@ -50,6 +52,7 @@ describe('barConfigFromElement', () => {
     it('leaves absent booleans undefined so component defaults apply', () => {
         const config = barConfigFromElement(element({}), 'ibw_key');
         expect(config.showLabel).toBeUndefined();
+        expect(config.showThumbs).toBeUndefined();
         expect(config.showTitleField).toBeUndefined();
     });
 

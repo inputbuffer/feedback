@@ -2,6 +2,24 @@
 
 All notable changes to `@inputbuffer/feedback` will be documented here.
 
+## [Unreleased]
+
+### Added
+
+- **`showThumbs` / `show-thumbs` on the feedback bar.** Set it to `false` to hide the thumbs up/down
+  buttons. The label area becomes a single button that opens the follow-up form with no sentiment,
+  and no reaction is recorded. An explicit `showLabel: false` is ignored in that case — with the
+  thumbs gone the label is the only way to open the form — and logs a warning.
+- **`bar.open(sentiment?)` and `bar.close()`.** Drive the follow-up form from your own UI. `open()`
+  is a display action: it never records a reaction, writes to `localStorage`, or emits `vote`.
+  Passing a sentiment selects that thumb; omitting it keeps the current selection.
+
+### Changed
+
+- The `open` event payload's `sentiment` is now optional, because the label trigger and a bare
+  `open()` both open the form without one. Type-level breaking change for TypeScript consumers whose
+  `open` handler declares `sentiment` as required.
+
 ## [0.3.0] - 2026-09-06
 
 Realigns the widget with the current InputBuffer API. The previous release sends a payload
